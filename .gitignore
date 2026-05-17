@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.production
+.env.staging
+uploads/*
+!uploads/.gitkeep
+*.log
+.DS_Store
+coverage/
+*.lcov
+.idea/
+.vscode/
