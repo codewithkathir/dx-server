@@ -25,7 +25,7 @@ export function createApp(options: CreateAppOptions = {}): express.Application {
   app.use(helmet());
   app.use(
     cors({
-      origin: config.cors.origin,
+      origin: ["http://localhost:3000", "http://localhost:5173, *"],// config.cors.origin,
       credentials: true,
     })
   );

@@ -47,7 +47,7 @@ export const config = {
   },
 
   cors: {
-    origin: env.CORS_ORIGIN,
+    origin: ["http://localhost:3000", "http://localhost:5173, *"],//env.CORS_ORIGIN,
   },
 
   app: {
