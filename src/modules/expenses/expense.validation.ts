@@ -12,7 +12,7 @@ const expenseFieldsSchema = {
   whom: z.coerce.number().int().positive(),
   categoryId: z.coerce.number().int().positive(),
   subCategoryId: z.coerce.number().int().positive(),
-  subSubCategoryId: z.coerce.number().int().positive().optional().nullable(),
+ // subSubCategoryId: z.coerce.number().int().positive().optional().nullable(),
   description: z.string().max(5000).trim().optional().nullable(),
   paymentMethodId: z.coerce.number().int().positive(),
 };
@@ -26,9 +26,9 @@ export const updateExpenseSchema = z
     whom: z.coerce.number().int().positive().optional(),
     categoryId: z.coerce.number().int().positive().optional(),
     subCategoryId: z.coerce.number().int().positive().optional(),
-    subSubCategoryId: z
-      .union([z.coerce.number().int().positive(), z.null()])
-      .optional(),
+  //  subSubCategoryId: z
+  //    .union([z.coerce.number().int().positive(), z.null()])
+  //    .optional(),
     description: z.union([z.string().max(5000).trim(), z.null()]).optional(),
     paymentMethodId: z.coerce.number().int().positive().optional(),
   })
