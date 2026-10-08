@@ -28,6 +28,7 @@ import type {
   AdminRefreshInput,
   AdminResetPasswordInput,
   AdminRow,
+  AdminUpdateProfileInput,
 } from "./admin.types";
 
 class AdminAuthService {
@@ -254,6 +255,24 @@ class AdminAuthService {
       throw new ApiError("Admin not found", ErrorCodes.NOT_FOUND, 404);
     }
     return this.toPublicAdmin(admin);
+  }
+
+  async updateProfile(
+    adminId: number,
+    input: AdminUpdateProfileInput
+  ): Promise<AdminPublic> {
+    const admin = await adminRepository.findActiveById(adminId);
+    if (!admin) {
+      throw new ApiError("Admin not found", ErrorCodes.NOT_FOUND, 404);
+    }
+    await adminRepository.updateName(adminId, input.name);
+    logger.info({ adminId }, "Admin profile updated");
+
+    const updated = await adminRepository.findActiveById(adminId);
+    if (!updated) {
+      throw new ApiError("Admin not found", ErrorCodes.NOT_FOUND, 404);
+    }
+    return this.toPublicAdmin(updated);
   }
 
   async updateProfilePhoto(

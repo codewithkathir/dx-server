@@ -11,6 +11,7 @@ import type {
   EmployeeLoginBody,
   EmployeeRefreshTokenBody,
   EmployeeResetPasswordBody,
+  EmployeeUpdateProfileBody,
 } from "./employee-auth.validation";
 
 class EmployeeAuthController {
@@ -57,6 +58,12 @@ class EmployeeAuthController {
   getProfile = asyncHandler(async (req: Request, res: Response) => {
     const employee = await employeeAuthService.getProfile(req.user!.id);
     successResponse(res, employee, "Profile fetched successfully");
+  });
+
+  updateProfile = asyncHandler(async (req: Request, res: Response) => {
+    const body = req.validated!.body as EmployeeUpdateProfileBody;
+    const employee = await employeeAuthService.updateProfile(req.user!.id, body);
+    successResponse(res, employee, "Profile updated successfully");
   });
 
   streamProfilePhoto = asyncHandler(async (req: Request, res: Response) => {

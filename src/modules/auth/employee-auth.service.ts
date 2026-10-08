@@ -27,6 +27,7 @@ import type {
   EmployeeLoginInput,
   EmployeeRefreshInput,
   EmployeeResetPasswordInput,
+  EmployeeUpdateProfileInput,
 } from "./employee-auth.types";
 
 class EmployeeAuthService {
@@ -281,6 +282,37 @@ class EmployeeAuthService {
       throw new ApiError("Employee not found", ErrorCodes.NOT_FOUND, 404);
     }
     return this.toPublicEmployee(employee);
+  }
+
+  async updateProfile(
+    employeeId: number,
+    input: EmployeeUpdateProfileInput
+  ): Promise<EmployeeAuthPublic> {
+    const employee = await employeeAuthRepository.findActiveById(employeeId);
+    if (!employee) {
+      throw new ApiError("Employee not found", ErrorCodes.NOT_FOUND, 404);
+    }
+
+    await employeeAuthRepository.updateProfile(employeeId, {
+      ...(input.empName !== undefined && { emp_name: input.empName }),
+      ...(input.dob !== undefined && { dob: input.dob }),
+      ...(input.phoneNo !== undefined && { phone_no: input.phoneNo }),
+      ...(input.whatsappNo !== undefined && { whatsapp_no: input.whatsappNo }),
+      ...(input.homeAddress !== undefined && { home_address: input.homeAddress }),
+      ...(input.cityState !== undefined && { city_state: input.cityState }),
+      ...(input.country !== undefined && { country: input.country }),
+    });
+
+    logger.info(
+      { employeeId, fields: Object.keys(input) },
+      "Employee profile updated"
+    );
+
+    const updated = await employeeAuthRepository.findActiveById(employeeId);
+    if (!updated) {
+      throw new ApiError("Employee not found", ErrorCodes.NOT_FOUND, 404);
+    }
+    return this.toPublicEmployee(updated);
   }
 
   async updateProfilePhoto(

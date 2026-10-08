@@ -32,6 +32,16 @@ class AdminRepository extends BaseRepository<AdminRow> {
       });
   }
 
+  async updateName(id: number, name: string): Promise<void> {
+    await this.db(this.tableName)
+      .where({ id })
+      .whereNull("deleted_at")
+      .update({
+        name,
+        updated_at: this.db.fn.now(),
+      });
+  }
+
   async updateProfilePhoto(id: number, profilePhoto: string): Promise<void> {
     await this.db(this.tableName)
       .where({ id })

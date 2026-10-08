@@ -19,6 +19,8 @@ const config: Knex.Config = {
     user: requireEnv("DB_USER"),
     password: process.env.DB_PASSWORD ?? "",
     database: requireEnv("DB_NAME"),
+    // Keep DATE columns as "YYYY-MM-DD" strings (see src/config/db.config.ts).
+    dateStrings: ["DATE"],
   },
   pool: {
     min: 2,

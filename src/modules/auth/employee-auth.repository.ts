@@ -33,6 +33,29 @@ class EmployeeAuthRepository extends BaseRepository<EmployeeAuthRow> {
       });
   }
 
+  async updateProfile(
+    id: number,
+    data: Partial<
+      Pick<
+        EmployeeAuthRow,
+        | "emp_name"
+        | "phone_no"
+        | "whatsapp_no"
+        | "home_address"
+        | "city_state"
+        | "country"
+      > & { dob: string }
+    >
+  ): Promise<void> {
+    await this.db(this.tableName)
+      .where({ id })
+      .whereNull("deleted_at")
+      .update({
+        ...data,
+        updated_at: this.db.fn.now(),
+      });
+  }
+
   async updateProfilePhoto(id: number, profilePhoto: string): Promise<void> {
     await this.db(this.tableName)
       .where({ id })

@@ -16,7 +16,7 @@ const phoneSchema = z.string().min(5).max(30).trim();
 const shortTextSchema = z.string().min(1).max(200).trim();
 const idDocSchema = z.string().min(1).max(50).trim();
 
-const employeeCoreFields = {
+export const employeeCoreFields = {
   empName: z.string().min(2).max(150).trim(),
   companyName: shortTextSchema,
   dob: dateStringSchema,

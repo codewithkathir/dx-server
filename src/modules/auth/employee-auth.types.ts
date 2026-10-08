@@ -70,3 +70,13 @@ export interface EmployeeChangePasswordInput {
   oldPassword: string;
   newPassword: string;
 }
+
+export interface EmployeeUpdateProfileInput {
+  empName?: string;
+  dob?: string;
+  phoneNo?: string;
+  whatsappNo?: string | null;
+  homeAddress?: string;
+  cityState?: string;
+  country?: string;
+}

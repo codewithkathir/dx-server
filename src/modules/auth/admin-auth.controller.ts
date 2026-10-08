@@ -11,6 +11,7 @@ import type {
   AdminLoginBody,
   AdminRefreshTokenBody,
   AdminResetPasswordBody,
+  AdminUpdateProfileBody,
 } from "./admin-auth.validation";
 
 class AdminAuthController {
@@ -57,6 +58,12 @@ class AdminAuthController {
   getProfile = asyncHandler(async (req: Request, res: Response) => {
     const admin = await adminAuthService.getProfile(req.user!.id);
     successResponse(res, admin, "Profile fetched successfully");
+  });
+
+  updateProfile = asyncHandler(async (req: Request, res: Response) => {
+    const body = req.validated!.body as AdminUpdateProfileBody;
+    const admin = await adminAuthService.updateProfile(req.user!.id, body);
+    successResponse(res, admin, "Profile updated successfully");
   });
 
   streamProfilePhoto = asyncHandler(async (req: Request, res: Response) => {

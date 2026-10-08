@@ -43,3 +43,12 @@ export type AdminRefreshTokenBody = z.infer<typeof adminRefreshTokenSchema>;
 export type AdminForgotPasswordBody = z.infer<typeof adminForgotPasswordSchema>;
 export type AdminResetPasswordBody = z.infer<typeof adminResetPasswordSchema>;
 export type AdminChangePasswordBody = z.infer<typeof adminChangePasswordSchema>;
+
+/** Fields an admin may change on their own profile. Email, role and status are not self-editable. */
+export const adminUpdateProfileSchema = z
+  .object({
+    name: z.string().min(2).max(150).trim(),
+  })
+  .strict();
+
+export type AdminUpdateProfileBody = z.infer<typeof adminUpdateProfileSchema>;

@@ -8,6 +8,10 @@ export const dbConfig = {
     user: config.db.user,
     password: config.db.password,
     database: config.db.name,
+    // Return DATE columns as "YYYY-MM-DD" strings. As Date objects they are
+    // local midnight, and toISOString() then shifts them a day earlier in
+    // timezones ahead of UTC (e.g. IST).
+    dateStrings: ["DATE" as const],
   },
   pool: {
     min: 2,

@@ -11,6 +11,7 @@ import {
   employeeLoginSchema,
   employeeRefreshTokenSchema,
   employeeResetPasswordSchema,
+  employeeUpdateProfileSchema,
 } from "./employee-auth.validation";
 
 const employeeAuthRoutes = Router();
@@ -76,6 +77,14 @@ employeeAuthRoutes.get(
   authenticateEmployee,
   requireEmployeeRole(),
   employeeAuthController.getProfile
+);
+
+employeeAuthRoutes.patch(
+  "/me",
+  authenticateEmployee,
+  requireEmployeeRole(),
+  validate(employeeUpdateProfileSchema, "body"),
+  employeeAuthController.updateProfile
 );
 
 export default employeeAuthRoutes;

@@ -11,6 +11,7 @@ import {
   adminLoginSchema,
   adminRefreshTokenSchema,
   adminResetPasswordSchema,
+  adminUpdateProfileSchema,
 } from "./admin-auth.validation";
 
 const adminAuthRoutes = Router();
@@ -76,6 +77,14 @@ adminAuthRoutes.get(
   authenticateAdmin,
   requireAdminRole(),
   adminAuthController.getProfile
+);
+
+adminAuthRoutes.patch(
+  "/me",
+  authenticateAdmin,
+  requireAdminRole(),
+  validate(adminUpdateProfileSchema, "body"),
+  adminAuthController.updateProfile
 );
 
 export default adminAuthRoutes;

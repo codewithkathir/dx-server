@@ -62,3 +62,7 @@ export interface AdminChangePasswordInput {
   oldPassword: string;
   newPassword: string;
 }
+
+export interface AdminUpdateProfileInput {
+  name: string;
+}
