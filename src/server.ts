@@ -6,11 +6,10 @@ import { db } from "./database/knex";
 async function bootstrap(): Promise<void> {
   try {
     await db.raw("SELECT 1");
-    logger.info("Database connection established");
   } catch (error) {
     logger.error({ err: error }, "Database connection failed");
     logger.error(
-      "Fix DB_* in .env, create the database, then run: npm run setup"
+      `Fix DB_* in the env file for APP_ENV=${config.appEnv}, create the database, then run: npm run setup`
     );
     process.exit(1);
   }
@@ -18,10 +17,25 @@ async function bootstrap(): Promise<void> {
   const app = createApp();
 
   const server = app.listen(config.port, () => {
-    logger.info(
-      { port: config.port, env: config.nodeEnv },
-      "Server started"
+    // Plain-text startup summary for the terminal; structured logs stay in pino.
+    process.stdout.write(
+      [
+        `Running env : ${config.appEnv}`,
+        `Connected DB: ${config.db.name}`,
+        `Running port: ${config.port}`,
+      ].join("\n") + "\n"
     );
+  });
+
+  server.on("error", (error: NodeJS.ErrnoException) => {
+    if (error.code === "EADDRINUSE") {
+      logger.error(
+        `Port ${config.port} is already in use. Stop the other server or set PORT.`
+      );
+    } else {
+      logger.error({ err: error }, "Server failed to start");
+    }
+    process.exit(1);
   });
 
   const shutdown = async (signal: string): Promise<void> => {
