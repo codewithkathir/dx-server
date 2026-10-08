@@ -1,7 +1,12 @@
 import { z } from "zod";
 
+import { AppEnvs } from "./load-env";
+
+// Host/URL values have no defaults here: APP_ENV=local fills them with
+// localhost values in load-env.ts, while dev and qa must provide them.
 export const envSchema = z.object({
-  PORT: z.coerce.number().default(5000),
+  APP_ENV: z.enum(AppEnvs),
+  PORT: z.coerce.number().int().positive(),
   NODE_ENV: z.enum(["development", "staging", "production", "test"]).default("development"),
 
   DB_HOST: z.string().min(1),
@@ -22,8 +27,9 @@ export const envSchema = z.object({
     .transform((v) => v === "true")
     .default("false"),
 
-  CORS_ORIGIN: z.string().default("http://localhost:3000"),
-  APP_URL: z.string().default("http://localhost:3000"),
+  /** Comma-separated list of allowed browser origins. */
+  CORS_ORIGIN: z.string().min(1),
+  APP_URL: z.string().url(),
 
   UPLOAD_PATH: z.string().default("uploads"),
   MAX_FILE_SIZE: z.coerce.number().default(5242880),

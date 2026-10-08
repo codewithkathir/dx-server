@@ -1,7 +1,7 @@
-import dotenv from "dotenv";
 import { envSchema, type Env } from "./env.schema";
+import { loadEnv } from "./load-env";
 
-dotenv.config();
+loadEnv();
 
 function loadConfig(): Env {
   const result = envSchema.safeParse(process.env);
@@ -20,6 +20,7 @@ function loadConfig(): Env {
 const env = loadConfig();
 
 export const config = {
+  appEnv: env.APP_ENV,
   port: env.PORT,
   nodeEnv: env.NODE_ENV,
   isProduction: env.NODE_ENV === "production",
@@ -47,7 +48,9 @@ export const config = {
   },
 
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:5173, *"],//env.CORS_ORIGIN,
+    origin: env.CORS_ORIGIN.split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean),
   },
 
   app: {

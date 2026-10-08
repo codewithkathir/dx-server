@@ -5,10 +5,10 @@
  *   npm run seed:employees          # insert only if sample rows missing
  *   npm run seed:employees -- --force   # delete sample rows and re-insert
  */
-import dotenv from "dotenv";
+import { loadEnv } from "../src/config/load-env";
 import knex from "knex";
 
-dotenv.config();
+loadEnv();
 
 const force = process.argv.includes("--force");
 

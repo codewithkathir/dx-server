@@ -2,10 +2,10 @@
  * Show which database is configured and list employees.
  * Usage: npm run db:status
  */
-import dotenv from "dotenv";
+import { loadEnv } from "../src/config/load-env";
 import knex from "knex";
 
-dotenv.config();
+loadEnv();
 
 async function main(): Promise<void> {
   const host = process.env.DB_HOST ?? "localhost";

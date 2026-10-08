@@ -1,7 +1,7 @@
-import dotenv from "dotenv";
+import { loadEnv } from "../src/config/load-env";
 import knex from "knex";
 
-dotenv.config();
+loadEnv();
 
 async function checkDb(): Promise<void> {
   const db = knex({
@@ -10,7 +10,7 @@ async function checkDb(): Promise<void> {
       host: process.env.DB_HOST ?? "localhost",
       port: Number(process.env.DB_PORT ?? 3306),
       user: process.env.DB_USER ?? "root",
-      password: process.env.DB_PASSWORD ?? "Kathir@99",
+      password: process.env.DB_PASSWORD ?? "",
       database: process.env.DB_NAME ?? "dx_app",
     },
   });
@@ -22,7 +22,7 @@ async function checkDb(): Promise<void> {
     process.exit(0);
   } catch (error) {
     console.error("\nDatabase connection failed.\n");
-    console.error("1. Set DB_PASSWORD in .env to your MySQL root password");
+    console.error("1. Set DB_PASSWORD in your .env file (.env / .env.dev / .env.qa) to your MySQL root password");
     console.error("2. Create the database:");
     console.error(
       `   mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS ${process.env.DB_NAME ?? "dx_app"};"`
