@@ -6,13 +6,19 @@ const dateSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD format");
 
+/** Optional FK id. Multipart bodies send an empty select as "" (or "null"), so treat those as null. */
+const optionalNullableIdSchema = z.preprocess(
+  (value) => (value === "" || value === "null" ? null : value),
+  z.coerce.number().int().positive().nullable().optional()
+);
+
 const expenseFieldsSchema = {
   date: dateSchema,
   amount: z.coerce.number().positive().max(999999999.99),
   whom: z.coerce.number().int().positive(),
   categoryId: z.coerce.number().int().positive(),
   subCategoryId: z.coerce.number().int().positive(),
- // subSubCategoryId: z.coerce.number().int().positive().optional().nullable(),
+  subSubCategoryId: optionalNullableIdSchema,
   description: z.string().max(5000).trim().optional().nullable(),
   paymentMethodId: z.coerce.number().int().positive(),
 };
@@ -26,9 +32,7 @@ export const updateExpenseSchema = z
     whom: z.coerce.number().int().positive().optional(),
     categoryId: z.coerce.number().int().positive().optional(),
     subCategoryId: z.coerce.number().int().positive().optional(),
-  //  subSubCategoryId: z
-  //    .union([z.coerce.number().int().positive(), z.null()])
-  //    .optional(),
+    subSubCategoryId: optionalNullableIdSchema,
     description: z.union([z.string().max(5000).trim(), z.null()]).optional(),
     paymentMethodId: z.coerce.number().int().positive().optional(),
   })
