@@ -186,8 +186,29 @@ class ExpenseRepository extends BaseRepository<ExpenseRow> {
       });
   }
 
-  async softDeleteById(id: number): Promise<number> {
-    return this.baseQuery()
+  async findByIdForUpdate(
+    trx: Knex.Transaction,
+    id: number
+  ): Promise<ExpenseRow | undefined> {
+    return trx("expenses")
+      .where({ id })
+      .whereNull("deleted_at")
+      .forUpdate()
+      .first() as Promise<ExpenseRow | undefined>;
+  }
+
+  async setStatuses(
+    trx: Knex.Transaction,
+    id: number,
+    statuses: { employee_status?: string; admin_status?: string }
+  ): Promise<void> {
+    await trx("expenses")
+      .where({ id })
+      .update({ ...statuses, updated_at: this.db.fn.now() });
+  }
+
+  async softDeleteById(id: number, trx?: Knex.Transaction): Promise<number> {
+    return this.baseQuery(trx)
       .where({ id })
       .update({
         deleted_at: this.db.fn.now(),
@@ -217,14 +238,15 @@ class ExpenseRepository extends BaseRepository<ExpenseRow> {
     }
     if (input.supportFile !== undefined) data.support_file = input.supportFile;
 
+    // Only expenses still awaiting approval can change (approval creates a bill).
     return this.applyEmployeeScope(this.baseQuery(), employeeId)
-      .where({ id })
+      .where({ id, employee_status: "pending" })
       .update(data);
   }
 
   async softDeleteForEmployee(id: number, employeeId: number): Promise<number> {
     return this.applyEmployeeScope(this.baseQuery(), employeeId)
-      .where({ id })
+      .where({ id, employee_status: "pending" })
       .update({
         deleted_at: this.db.fn.now(),
         updated_at: this.db.fn.now(),

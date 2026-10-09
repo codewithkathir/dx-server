@@ -34,6 +34,19 @@ export const envSchema = z.object({
   UPLOAD_PATH: z.string().default("uploads"),
   MAX_FILE_SIZE: z.coerce.number().default(5242880),
 
+  // Seller details printed on invoices. With COMPANY_TRN set, PDFs are titled "Tax Invoice".
+  COMPANY_NAME: z
+    .string()
+    .optional()
+    .transform((value) => value?.trim() || "DX Record"),
+  COMPANY_ADDRESS: z.string().optional(),
+  COMPANY_TRN: z
+    .string()
+    .regex(/^\d{15}$/, "COMPANY_TRN must be 15 digits")
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+  COMPANY_BANK_DETAILS: z.string().optional(),
+
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900000),
   RATE_LIMIT_MAX: z.coerce.number().default(100),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().default(5),

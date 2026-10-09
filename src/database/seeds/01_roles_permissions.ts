@@ -1,9 +1,19 @@
 import type { Knex } from "knex";
 import { Roles } from "../../shared/constants/roles";
-import { Permissions } from "../../shared/constants/permissions";
+import {
+  DefaultRolePermissions,
+  Permissions,
+} from "../../shared/constants/permissions";
 
 export async function seed(knex: Knex): Promise<void> {
   await knex("role_permissions").del();
+  await knex("receivable_receipts").del();
+  await knex("receivable_invoices").del();
+  await knex("payable_payments").del();
+  await knex("payable_bills").del();
+  await knex("customers").del();
+  await knex("suppliers").del();
+  await knex("document_sequences").del();
   await knex("expenses").del();
   await knex("sub_sub_categories").del();
   await knex("sub_categories").del();
@@ -42,26 +52,9 @@ export async function seed(knex: Knex): Promise<void> {
     permissions.map((p: { id: number; name: string }) => [p.name, p.id])
   );
 
-  const rolePermissionAssignments: Record<string, string[]> = {
-    [Roles.SUPER_ADMIN]: Object.values(Permissions),
-    [Roles.ADMIN]: [
-      Permissions.USER_CREATE,
-      Permissions.USER_READ,
-      Permissions.USER_UPDATE,
-      Permissions.USER_DELETE,
-      Permissions.ROLE_READ,
-      Permissions.EMPLOYEE_CREATE,
-      Permissions.EMPLOYEE_READ,
-      Permissions.EMPLOYEE_UPDATE,
-      Permissions.EMPLOYEE_DELETE,
-      Permissions.EMPLOYEE_EXPORT,
-      Permissions.EMPLOYEE_EXPENSE_READ,
-      Permissions.EMPLOYEE_EXPENSE_UPDATE,
-      Permissions.EMPLOYEE_EXPENSE_DELETE,
-    ],
-    [Roles.EDITOR]: [Permissions.USER_READ],
-    [Roles.USER]: [],
-  };
+  // Single source of truth for role → permissions.
+  const rolePermissionAssignments: Record<string, readonly string[]> =
+    DefaultRolePermissions;
 
   const rolePermissionRows: Array<{
     role_id: number;

@@ -52,6 +52,20 @@ adminExpenseRoutes.put(
   adminExpenseController.updateExpenseStatus
 );
 
+adminExpenseRoutes.post(
+  "/:id/approve",
+  requirePermission(Permissions.EMPLOYEE_EXPENSE_APPROVE),
+  validate(idParamSchema, "params"),
+  adminExpenseController.approveExpense
+);
+
+adminExpenseRoutes.post(
+  "/:id/reject",
+  requirePermission(Permissions.EMPLOYEE_EXPENSE_APPROVE),
+  validate(idParamSchema, "params"),
+  adminExpenseController.rejectExpense
+);
+
 adminExpenseRoutes.delete(
   "/:id",
   requirePermission(Permissions.EMPLOYEE_EXPENSE_DELETE),

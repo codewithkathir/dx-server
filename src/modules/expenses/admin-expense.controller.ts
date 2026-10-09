@@ -50,15 +50,29 @@ class AdminExpenseController {
   updateExpenseStatus = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.validated!.params as IdParam;
     const body = req.validated!.body as UpdateAdminExpenseStatusBody;
-    const expense = await adminExpenseService.updateExpenseStatus(id, {
-      adminStatus: body.adminStatus,
-    });
+    const expense = await adminExpenseService.updateExpenseStatus(
+      id,
+      { adminStatus: body.adminStatus },
+      req.user?.id
+    );
     successResponse(res, expense, "Expense status updated successfully");
+  });
+
+  approveExpense = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.validated!.params as IdParam;
+    const expense = await adminExpenseService.approveExpense(id, req.user?.id);
+    successResponse(res, expense, "Expense approved; reimbursement bill created");
+  });
+
+  rejectExpense = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.validated!.params as IdParam;
+    const expense = await adminExpenseService.rejectExpense(id, req.user?.id);
+    successResponse(res, expense, "Expense rejected");
   });
 
   deleteExpense = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.validated!.params as IdParam;
-    await adminExpenseService.deleteExpense(id);
+    await adminExpenseService.deleteExpense(id, req.user?.id);
     successResponse(res, null, "Expense deleted successfully");
   });
 }

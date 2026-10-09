@@ -5,6 +5,10 @@ import subSubCategoryRoutes from "../../../modules/sub-sub-categories/sub-sub-ca
 import paymentMethodRoutes from "../../../modules/payment-methods/payment-method.routes";
 import dropdownAdminRoutes from "../../../modules/dropdowns/dropdown.admin.routes";
 import adminExpenseRoutes from "../../../modules/expenses/admin-expense.routes";
+import supplierRoutes from "../../../modules/suppliers/supplier.routes";
+import payableRoutes from "../../../modules/payables/payable.routes";
+import customerRoutes from "../../../modules/customers/customer.routes";
+import receivableRoutes from "../../../modules/receivables/receivable.routes";
 
 const adminV1Router = Router();
 
@@ -14,5 +18,9 @@ adminV1Router.use("/categories", categoryRoutes);
 adminV1Router.use("/sub-categories", subCategoryRoutes);
 adminV1Router.use("/sub-sub-categories", subSubCategoryRoutes);
 adminV1Router.use("/payment-methods", paymentMethodRoutes);
+adminV1Router.use("/suppliers", supplierRoutes);
+adminV1Router.use("/payables", payableRoutes);
+adminV1Router.use("/customers", customerRoutes);
+adminV1Router.use("/receivables", receivableRoutes);
 
 export default adminV1Router;

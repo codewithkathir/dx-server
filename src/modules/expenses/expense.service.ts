@@ -12,6 +12,7 @@ import { subCategoryRepository } from "../sub-categories/sub-category.repository
 import { subSubCategoryRepository } from "../sub-sub-categories/sub-sub-category.repository";
 import { dropdownRepository } from "../dropdowns/dropdown.repository";
 import { expenseRepository } from "./expense.repository";
+import { payableService } from "../payables/payable.service";
 import type {
   CreateExpenseInput,
   ExpenseListQuery,
@@ -117,7 +118,7 @@ class ExpenseService {
       query
     );
     return {
-      data: data.map((row) => this.toPublicExpense(row)),
+      data: await this.withReimbursements(data.map((row) => this.toPublicExpense(row))),
       meta: buildPaginationMeta(query.page, query.limit, total),
     };
   }
@@ -130,7 +131,30 @@ class ExpenseService {
     if (!row) {
       throw new ApiError("Expense not found", ErrorCodes.NOT_FOUND, 404);
     }
-    return this.toPublicExpense(row);
+    const [expense] = await this.withReimbursements([this.toPublicExpense(row)]);
+    return expense as ExpensePublic;
+  }
+
+  private async withReimbursements(expenses: ExpensePublic[]): Promise<ExpensePublic[]> {
+    const reimbursements = await payableService.getReimbursements(expenses.map((e) => e.id));
+    return expenses.map((e) => ({ ...e, reimbursement: reimbursements.get(e.id) ?? null }));
+  }
+
+  /** The guarded write matched nothing: the status changed after we read it. */
+  private async assertStillEditable(employeeId: number, expenseId: number): Promise<void> {
+    const current = await expenseRepository.findByIdForEmployee(expenseId, employeeId);
+    if (!current) throw new ApiError("Expense not found", ErrorCodes.NOT_FOUND, 404);
+    this.assertEditable(current);
+  }
+
+  private assertEditable(row: { employee_status: string }): void {
+    if (row.employee_status !== "pending") {
+      throw new ApiError(
+        `This expense has been ${row.employee_status} and can no longer be changed`,
+        ErrorCodes.CONFLICT,
+        409
+      );
+    }
   }
 
   async createExpense(
@@ -154,6 +178,7 @@ class ExpenseService {
     if (!existing) {
       throw new ApiError("Expense not found", ErrorCodes.NOT_FOUND, 404);
     }
+    this.assertEditable(existing);
 
     const merged = {
       categoryId: input.categoryId ?? existing.category_id,
@@ -168,7 +193,8 @@ class ExpenseService {
 
     await this.assertCatalogReferences(merged);
 
-    await expenseRepository.updateByIdForEmployee(expenseId, employeeId, input);
+    const updated = await expenseRepository.updateByIdForEmployee(expenseId, employeeId, input);
+    if (updated === 0) await this.assertStillEditable(employeeId, expenseId);
     return this.getMyExpenseById(employeeId, expenseId);
   }
 
@@ -180,7 +206,9 @@ class ExpenseService {
     if (!existing) {
       throw new ApiError("Expense not found", ErrorCodes.NOT_FOUND, 404);
     }
-    await expenseRepository.softDeleteForEmployee(expenseId, employeeId);
+    this.assertEditable(existing);
+    const deleted = await expenseRepository.softDeleteForEmployee(expenseId, employeeId);
+    if (deleted === 0) await this.assertStillEditable(employeeId, expenseId);
   }
 
   async getSupportFileForEmployee(

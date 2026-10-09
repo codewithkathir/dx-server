@@ -1,3 +1,4 @@
+import type { ExpenseReimbursement } from "../payables/payable.types";
 import type {
   AdminExpenseStatus,
   EmployeeExpenseStatus,
@@ -37,6 +38,8 @@ export interface ExpensePublic {
   supportFile: string | null;
   employeeStatus: EmployeeExpenseStatus;
   adminStatus: AdminExpenseStatus;
+  /** The payable bill created when the expense was approved (list/detail responses). */
+  reimbursement?: ExpenseReimbursement | null;
   createdAt: Date;
   updatedAt: Date;
 }

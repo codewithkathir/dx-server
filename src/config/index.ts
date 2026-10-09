@@ -62,6 +62,13 @@ export const config = {
     maxFileSize: env.MAX_FILE_SIZE,
   },
 
+  company: {
+    name: env.COMPANY_NAME,
+    address: env.COMPANY_ADDRESS,
+    trn: env.COMPANY_TRN,
+    bankDetails: env.COMPANY_BANK_DETAILS,
+  },
+
   rateLimit: {
     windowMs: env.RATE_LIMIT_WINDOW_MS,
     max: env.RATE_LIMIT_MAX,
