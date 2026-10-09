@@ -10,6 +10,8 @@ import {
   adminExpenseSummaryQuerySchema,
   idParamSchema,
   updateAdminExpenseStatusSchema,
+  approveExpenseSchema,
+  rejectExpenseSchema,
 } from "./admin-expense.validation";
 
 const adminExpenseRoutes = Router();
@@ -56,6 +58,7 @@ adminExpenseRoutes.post(
   "/:id/approve",
   requirePermission(Permissions.EMPLOYEE_EXPENSE_APPROVE),
   validate(idParamSchema, "params"),
+  validate(approveExpenseSchema, "body"),
   adminExpenseController.approveExpense
 );
 
@@ -63,6 +66,7 @@ adminExpenseRoutes.post(
   "/:id/reject",
   requirePermission(Permissions.EMPLOYEE_EXPENSE_APPROVE),
   validate(idParamSchema, "params"),
+  validate(rejectExpenseSchema, "body"),
   adminExpenseController.rejectExpense
 );
 

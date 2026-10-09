@@ -32,6 +32,7 @@ class CustomerService {
       comments: row.comments,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      ...(row.outstanding_amount !== undefined ? { outstanding: Number(row.outstanding_amount) } : {}),
     };
   }
 

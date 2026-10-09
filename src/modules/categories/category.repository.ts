@@ -17,7 +17,12 @@ class CategoryRepository extends BaseRepository<CategoryRow> {
   }
 
   private buildListQuery(options: CategoryListQuery): Knex.QueryBuilder {
-    return applyListQuery(this.baseQuery(), options, {
+    const subCategoryCount = this.db("sub_categories as s")
+      .count("*")
+      .whereRaw("s.category_id = categories.id")
+      .whereNull("s.deleted_at")
+      .as("sub_category_count");
+    return applyListQuery(this.baseQuery().select("categories.*", subCategoryCount), options, {
       table: "categories",
       searchableFields: ["name", "description"],
       sortableFields: ["created_at", "name", "status"],

@@ -43,4 +43,4 @@ export const DEFAULT_VAT_RATE: VatRate = 5;
 export const DEFAULT_CURRENCY = "AED";
 
 /** Days until an approved expense reimbursement is due. */
-export const EXPENSE_REIMBURSEMENT_DUE_DAYS = 7;
+export const EXPENSE_REIMBURSEMENT_DUE_DAYS = 14;

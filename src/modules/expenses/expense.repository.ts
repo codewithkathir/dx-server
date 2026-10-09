@@ -2,6 +2,8 @@ import type { Knex } from "knex";
 import {
   DEFAULT_ADMIN_EXPENSE_STATUS,
   DEFAULT_EMPLOYEE_EXPENSE_STATUS,
+  ExpenseStages,
+  type ExpenseStage,
 } from "../../shared/constants/expense";
 import { BaseRepository } from "../../shared/repositories/base.repository";
 import {
@@ -13,11 +15,29 @@ import type {
   AdminExpenseListQuery,
   AdminExpenseSummary,
   CreateExpenseInput,
+  EmployeeExpenseSummary,
   ExpenseListQuery,
   ExpenseRow,
   UpdateAdminExpenseStatusInput,
   UpdateExpenseInput,
 } from "./expense.types";
+
+/** Where a claim is in its life: submitted → approved → paid, or rejected. */
+function applyStageFilter(query: Knex.QueryBuilder, stage?: ExpenseStage): Knex.QueryBuilder {
+  if (stage === "pending") return query.where({ employee_status: "pending", admin_status: "pending" });
+  if (stage === "approved") return query.where({ employee_status: "approved", admin_status: "pending" });
+  if (stage === "paid") return query.where("admin_status", "paid");
+  if (stage === "rejected") return query.where("admin_status", "rejected");
+  return query;
+}
+
+/** SQL twin of applyStageFilter, for grouping. */
+const STAGE_CASE = `CASE
+  WHEN admin_status = 'paid' THEN 'paid'
+  WHEN admin_status = 'rejected' THEN 'rejected'
+  WHEN employee_status = 'approved' THEN 'approved'
+  WHEN employee_status = 'pending' THEN 'pending'
+  ELSE 'rejected' END`;
 
 class ExpenseRepository extends BaseRepository<ExpenseRow> {
   constructor() {
@@ -35,6 +55,7 @@ class ExpenseRepository extends BaseRepository<ExpenseRow> {
     query: Knex.QueryBuilder,
     options: ExpenseListQuery
   ): Knex.QueryBuilder {
+    query = applyStageFilter(query, options.stage);
     if (options.categoryId) {
       query = query.where("category_id", options.categoryId);
     }
@@ -113,6 +134,7 @@ class ExpenseRepository extends BaseRepository<ExpenseRow> {
     if (options.adminStatus) {
       query = query.where("admin_status", options.adminStatus);
     }
+    query = applyStageFilter(query, options.stage);
     if (options.categoryId) {
       query = query.where("category_id", options.categoryId);
     }
@@ -139,6 +161,45 @@ class ExpenseRepository extends BaseRepository<ExpenseRow> {
       defaultSort: "created_at",
     });
     return this.applyAdminListFilters(query, options);
+  }
+
+  async getSummaryForEmployee(employeeId: number, yearStart: string): Promise<EmployeeExpenseSummary> {
+    const [stageRows, owed, paid] = await Promise.all([
+      this.applyEmployeeScope(this.baseQuery(), employeeId)
+        .select(
+          this.db.raw(`${STAGE_CASE} AS stage`),
+          this.db.raw("COUNT(*) AS count"),
+          this.db.raw("COALESCE(SUM(amount), 0) AS amount")
+        )
+        .groupBy("stage") as Promise<Array<{ stage: ExpenseStage; count: number | string; amount: number | string }>>,
+      this.db("payable_bills")
+        .where({ employee_id: employeeId, payee_type: "employee" })
+        .whereIn("status", ["open", "partially_paid"])
+        .whereNull("deleted_at")
+        .first(
+          this.db.raw("COUNT(*) AS count"),
+          this.db.raw("COALESCE(SUM(total_amount - amount_paid), 0) AS amount")
+        ) as Promise<{ count: number | string; amount: number | string } | undefined>,
+      this.db("payable_payments as p")
+        .join("payable_bills as b", "b.id", "p.bill_id")
+        .where({ "b.employee_id": employeeId, "b.payee_type": "employee" })
+        .where("p.payment_date", ">=", yearStart)
+        .whereNull("p.deleted_at")
+        .whereNull("b.deleted_at")
+        .first(this.db.raw("COALESCE(SUM(p.amount), 0) AS amount")) as Promise<{ amount: number | string } | undefined>,
+    ]);
+
+    const stages = Object.fromEntries(ExpenseStages.map((s) => [s, { count: 0, amount: 0 }])) as EmployeeExpenseSummary["stages"];
+    for (const row of stageRows) {
+      const totals = stages[row.stage];
+      totals.count += Number(row.count);
+      totals.amount = Math.round((totals.amount + Number(row.amount)) * 100) / 100;
+    }
+    return {
+      stages,
+      toBeReimbursed: { count: Number(owed?.count ?? 0), amount: Number(owed?.amount ?? 0) },
+      paidThisYear: Number(paid?.amount ?? 0),
+    };
   }
 
   async findAllPaginatedForAdmin(
@@ -200,7 +261,13 @@ class ExpenseRepository extends BaseRepository<ExpenseRow> {
   async setStatuses(
     trx: Knex.Transaction,
     id: number,
-    statuses: { employee_status?: string; admin_status?: string }
+    statuses: {
+      employee_status?: string;
+      admin_status?: string;
+      review_note?: string | null;
+      reviewed_at?: Knex.Raw;
+      reviewed_by?: number | null;
+    }
   ): Promise<void> {
     await trx("expenses")
       .where({ id })

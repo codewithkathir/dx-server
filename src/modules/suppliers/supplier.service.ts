@@ -29,6 +29,9 @@ class SupplierService {
       comments: row.comments,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      ...(row.open_bill_count !== undefined
+        ? { openBillCount: Number(row.open_bill_count), draftBillCount: Number(row.draft_bill_count ?? 0) }
+        : {}),
     };
   }
 

@@ -25,7 +25,13 @@ class CustomerRepository extends BaseRepository<CustomerRow> {
   }
 
   private buildListQuery(options: CustomerListQuery): Knex.QueryBuilder {
-    return applyListQuery(this.baseQuery(), options, {
+    const outstanding = this.db("receivable_invoices as i")
+      .select(this.db.raw("COALESCE(SUM(i.total_amount - i.amount_received), 0)"))
+      .whereRaw("i.customer_id = customers.id")
+      .whereIn("i.status", ["sent", "partially_paid"])
+      .whereNull("i.deleted_at")
+      .as("outstanding_amount");
+    return applyListQuery(this.baseQuery().select("customers.*", outstanding), options, {
       table: "customers",
       searchableFields: ["company_name", "contact_name_1", "email", "phone_1", "trn"],
       sortableFields: ["created_at", "company_name", "status"],
@@ -49,11 +55,15 @@ class CustomerRepository extends BaseRepository<CustomerRow> {
     const rows = await this.baseQuery()
       .where({ status: "active" })
       .orderBy("company_name", "asc")
-      .select("id", "company_name");
-    return rows.map((row: { id: number; company_name: string }) => ({
-      id: row.id,
-      companyName: row.company_name,
-    }));
+      .select("id", "company_name", "trn", "payment_terms");
+    return rows.map(
+      (row: { id: number; company_name: string; trn: string | null; payment_terms: string | null }) => ({
+        id: row.id,
+        companyName: row.company_name,
+        trn: row.trn,
+        paymentTerms: row.payment_terms,
+      })
+    );
   }
 
   async hasInvoices(id: number): Promise<boolean> {

@@ -22,6 +22,8 @@ expenseRoutes.get(
   expenseController.listMyExpenses
 );
 
+expenseRoutes.get("/summary", expenseController.getMySummary);
+
 expenseRoutes.post(
   "/",
   optionalExpenseSupportFileUpload,

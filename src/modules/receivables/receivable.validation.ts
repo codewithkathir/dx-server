@@ -59,6 +59,9 @@ export const invoiceListQuerySchema = z
     customerId: z.coerce.number().int().positive().optional(),
     dateFrom: dateSchema.optional(),
     dateTo: dateSchema.optional(),
+    /** Due-date window, e.g. "due this week". */
+    dueFrom: dateSchema.optional(),
+    dueTo: dateSchema.optional(),
   })
   .strict();
 

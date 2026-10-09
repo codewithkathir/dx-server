@@ -38,6 +38,7 @@ class AdminExpenseService {
       order: params.order,
       employeeId: params.employeeId,
       adminStatus: params.status,
+      stage: params.stage,
       categoryId: params.categoryId,
       dateFrom: params.dateFrom,
       dateTo: params.dateTo,
@@ -87,7 +88,11 @@ class AdminExpenseService {
    * Approving creates the payable bill that reimburses the employee. The
    * expense becomes "paid" only through payments on that bill.
    */
-  async approveExpense(expenseId: number, approvedBy?: number): Promise<ExpensePublic> {
+  async approveExpense(
+    expenseId: number,
+    approvedBy?: number,
+    note?: string | null
+  ): Promise<ExpensePublic> {
     await db.transaction(async (trx) => {
       const expense = await expenseRepository.findByIdForUpdate(trx, expenseId);
       if (!expense) {
@@ -111,14 +116,23 @@ class AdminExpenseService {
         },
         { billDate: todayIso(), createdBy: approvedBy }
       );
-      await expenseRepository.setStatuses(trx, expenseId, { employee_status: "approved" });
+      await expenseRepository.setStatuses(trx, expenseId, {
+        employee_status: "approved",
+        review_note: note?.trim() || null,
+        reviewed_at: trx.fn.now(),
+        reviewed_by: approvedBy ?? null,
+      });
     });
     logger.info({ expenseId, approvedBy }, "Expense approved, reimbursement bill created");
     return this.getExpenseById(expenseId);
   }
 
   /** Rejecting cancels an unpaid reimbursement bill, if one exists. */
-  async rejectExpense(expenseId: number, rejectedBy?: number): Promise<ExpensePublic> {
+  async rejectExpense(
+    expenseId: number,
+    rejectedBy?: number,
+    note?: string | null
+  ): Promise<ExpensePublic> {
     await db.transaction(async (trx) => {
       const expense = await expenseRepository.findByIdForUpdate(trx, expenseId);
       if (!expense) {
@@ -131,6 +145,9 @@ class AdminExpenseService {
       await expenseRepository.setStatuses(trx, expenseId, {
         employee_status: "rejected",
         admin_status: "rejected",
+        review_note: note?.trim() || null,
+        reviewed_at: trx.fn.now(),
+        reviewed_by: rejectedBy ?? null,
       });
     });
     logger.info({ expenseId, rejectedBy }, "Expense rejected");

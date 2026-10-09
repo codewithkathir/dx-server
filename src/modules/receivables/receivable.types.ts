@@ -100,4 +100,6 @@ export interface InvoiceListQuery extends ListQueryOptions {
   customerId?: number;
   dateFrom?: string;
   dateTo?: string;
+  dueFrom?: string;
+  dueTo?: string;
 }

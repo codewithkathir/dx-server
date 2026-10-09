@@ -19,6 +19,8 @@ export interface CustomerRow extends BaseEntity {
   payment_terms: string | null;
   status: PartyStatus;
   comments: string | null;
+  /** Only on list rows: unpaid balance of sent / part-paid invoices. */
+  outstanding_amount?: string | number;
 }
 
 export interface CustomerPublic {
@@ -40,11 +42,15 @@ export interface CustomerPublic {
   comments: string | null;
   createdAt: Date;
   updatedAt: Date;
+  outstanding?: number;
 }
 
 export interface CustomerOption {
   id: number;
   companyName: string;
+  /** Shown under the customer picker on the invoice form. */
+  trn: string | null;
+  paymentTerms: string | null;
 }
 
 export type CreateCustomerInput = CreateCustomerBody;

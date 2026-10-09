@@ -19,6 +19,11 @@ class ExpenseController {
     return req.user!.id;
   }
 
+  getMySummary = asyncHandler(async (req: Request, res: Response) => {
+    const summary = await expenseService.getMySummary(this.getEmployeeId(req));
+    successResponse(res, summary, "Expense summary fetched successfully");
+  });
+
   listMyExpenses = asyncHandler(async (req: Request, res: Response) => {
     const query = req.validated!.query as ExpenseListQueryParams;
     const result = await expenseService.listMyExpenses(

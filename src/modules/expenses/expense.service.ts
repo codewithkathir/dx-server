@@ -19,6 +19,7 @@ import type {
   ExpensePublic,
   ExpenseRow,
   UpdateExpenseInput,
+  EmployeeExpenseSummary,
 } from "./expense.types";
 
 export interface ExpenseSupportFileResource {
@@ -51,6 +52,8 @@ class ExpenseService {
       supportFile: row.support_file,
       employeeStatus: row.employee_status,
       adminStatus: row.admin_status,
+      reviewNote: row.review_note ?? null,
+      reviewedAt: row.reviewed_at ?? null,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -121,6 +124,11 @@ class ExpenseService {
       data: await this.withReimbursements(data.map((row) => this.toPublicExpense(row))),
       meta: buildPaginationMeta(query.page, query.limit, total),
     };
+  }
+
+  async getMySummary(employeeId: number): Promise<EmployeeExpenseSummary> {
+    const yearStart = `${new Date().getFullYear()}-01-01`;
+    return expenseRepository.getSummaryForEmployee(employeeId, yearStart);
   }
 
   async getMyExpenseById(

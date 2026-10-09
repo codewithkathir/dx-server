@@ -65,6 +65,8 @@ class ReceivableRepository extends BaseRepository<InvoiceRow> {
     if (options.customerId) query.where("i.customer_id", options.customerId);
     if (options.dateFrom) query.where("i.invoice_date", ">=", options.dateFrom);
     if (options.dateTo) query.where("i.invoice_date", "<=", options.dateTo);
+    if (options.dueFrom) query.where("i.due_date", ">=", options.dueFrom);
+    if (options.dueTo) query.where("i.due_date", "<=", options.dueTo);
 
     const sortColumn = SORTABLE[options.sortBy ?? ""] ?? "i.created_at";
     query.orderBy(sortColumn, options.order ?? "desc").orderBy("i.id", "desc");

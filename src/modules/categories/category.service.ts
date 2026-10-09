@@ -17,6 +17,9 @@ class CategoryService {
       name: row.name,
       description: row.description,
       status: row.status,
+      ...(row.sub_category_count !== undefined && {
+        subCategoryCount: Number(row.sub_category_count),
+      }),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

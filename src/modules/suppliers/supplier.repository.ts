@@ -16,7 +16,19 @@ class SupplierRepository extends BaseRepository<SupplierRow> {
   }
 
   private buildListQuery(options: SupplierListQuery): Knex.QueryBuilder {
-    return applyListQuery(this.baseQuery(), options, {
+    const billCount = (statuses: string[], alias: string) =>
+      this.db("payable_bills as b")
+        .count("*")
+        .whereRaw("b.supplier_id = suppliers.id")
+        .whereIn("b.status", statuses)
+        .whereNull("b.deleted_at")
+        .as(alias);
+    const query = this.baseQuery().select(
+      "suppliers.*",
+      billCount(["open", "partially_paid"], "open_bill_count"),
+      billCount(["draft"], "draft_bill_count")
+    );
+    return applyListQuery(query, options, {
       table: "suppliers",
       searchableFields: ["company_name", "contact_name_1", "email", "phone_1"],
       sortableFields: ["created_at", "company_name", "status"],

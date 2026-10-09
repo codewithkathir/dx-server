@@ -124,4 +124,6 @@ export interface BillListQuery extends ListQueryOptions {
   employeeId?: number;
   dateFrom?: string;
   dateTo?: string;
+  dueFrom?: string;
+  dueTo?: string;
 }

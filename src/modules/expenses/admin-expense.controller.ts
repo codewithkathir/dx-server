@@ -10,6 +10,8 @@ import type {
   AdminExpenseListQueryParams,
   AdminExpenseSummaryQueryParams,
   UpdateAdminExpenseStatusBody,
+  ApproveExpenseBody,
+  RejectExpenseBody,
 } from "./admin-expense.validation";
 
 class AdminExpenseController {
@@ -60,13 +62,15 @@ class AdminExpenseController {
 
   approveExpense = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.validated!.params as IdParam;
-    const expense = await adminExpenseService.approveExpense(id, req.user?.id);
+    const { note } = req.validated!.body as ApproveExpenseBody;
+    const expense = await adminExpenseService.approveExpense(id, req.user?.id, note);
     successResponse(res, expense, "Expense approved; reimbursement bill created");
   });
 
   rejectExpense = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.validated!.params as IdParam;
-    const expense = await adminExpenseService.rejectExpense(id, req.user?.id);
+    const { note } = req.validated!.body as RejectExpenseBody;
+    const expense = await adminExpenseService.rejectExpense(id, req.user?.id, note);
     successResponse(res, expense, "Expense rejected");
   });
 

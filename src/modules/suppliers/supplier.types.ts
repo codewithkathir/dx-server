@@ -16,6 +16,9 @@ export interface SupplierRow extends BaseEntity {
   whatsapp_no: string | null;
   status: PartyStatus;
   comments: string | null;
+  /** Only on list rows. */
+  open_bill_count?: number | string;
+  draft_bill_count?: number | string;
 }
 
 export interface SupplierPublic {
@@ -34,6 +37,8 @@ export interface SupplierPublic {
   comments: string | null;
   createdAt: Date;
   updatedAt: Date;
+  openBillCount?: number;
+  draftBillCount?: number;
 }
 
 export interface SupplierOption {

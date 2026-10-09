@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { ExpenseStages } from "../../shared/constants/expense";
 import { idParamSchema } from "../../shared/validators/common.validation";
 
 const dateSchema = z
@@ -48,6 +49,7 @@ export const expenseListQuerySchema = z
     search: z.string().optional(),
     sortBy: z.string().optional(),
     order: z.enum(["asc", "desc"]).default("desc"),
+    stage: z.enum(ExpenseStages).optional(),
     categoryId: z.coerce.number().int().positive().optional(),
     dateFrom: dateSchema.optional(),
     dateTo: dateSchema.optional(),

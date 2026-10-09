@@ -69,6 +69,8 @@ class PayableRepository extends BaseRepository<BillRow> {
     if (options.employeeId) query.where("b.employee_id", options.employeeId);
     if (options.dateFrom) query.where("b.bill_date", ">=", options.dateFrom);
     if (options.dateTo) query.where("b.bill_date", "<=", options.dateTo);
+    if (options.dueFrom) query.where("b.due_date", ">=", options.dueFrom);
+    if (options.dueTo) query.where("b.due_date", "<=", options.dueTo);
 
     const sortColumn = SORTABLE[options.sortBy ?? ""] ?? "b.created_at";
     query.orderBy(sortColumn, options.order ?? "desc").orderBy("b.id", "desc");
