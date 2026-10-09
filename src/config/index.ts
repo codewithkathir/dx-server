@@ -69,6 +69,15 @@ export const config = {
     bankDetails: env.COMPANY_BANK_DETAILS,
   },
 
+  mail: {
+    /** Emails are sent only when a SendGrid key is configured; otherwise they are logged. */
+    enabled: Boolean(env.SENDGRID_API_KEY),
+    sendgridApiKey: env.SENDGRID_API_KEY,
+    fromEmail: env.MAIL_FROM_EMAIL,
+    fromName: env.MAIL_FROM_NAME ?? env.COMPANY_NAME,
+    replyTo: env.MAIL_REPLY_TO,
+  },
+
   rateLimit: {
     windowMs: env.RATE_LIMIT_WINDOW_MS,
     max: env.RATE_LIMIT_MAX,

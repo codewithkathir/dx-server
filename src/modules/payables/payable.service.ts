@@ -23,6 +23,7 @@ import {
 } from "../../shared/utils/file.util";
 import { buildPaginationMeta } from "../../shared/utils/pagination.util";
 import { categoryService } from "../categories/category.service";
+import { notifyReimbursementPayment } from "../expenses/expense-notifications";
 import { paymentMethodRepository } from "../payment-methods/payment-method.repository";
 import { supplierService } from "../suppliers/supplier.service";
 import { payableRepository } from "./payable.repository";
@@ -373,6 +374,11 @@ class PayableService {
     });
 
     logger.info({ billId, amount: input.amount, createdBy }, "Payable payment recorded");
+    notifyReimbursementPayment(billId, {
+      amount: input.amount,
+      date: input.paymentDate,
+      paymentMethodId: input.paymentMethodId,
+    });
     return this.getBill(billId);
   }
 

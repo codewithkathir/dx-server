@@ -6,6 +6,7 @@ import { Actors } from "../../shared/constants/actors";
 import { Roles } from "../../shared/constants/roles";
 import type { AuthUser } from "../../shared/types/express";
 import { logger } from "../../shared/logger/logger";
+import { mailService, passwordChangedEmail, passwordResetEmail } from "../../shared/mail";
 import { comparePassword, hashPassword } from "../../shared/utils/password.util";
 import {
   generateAccessToken,
@@ -29,6 +30,9 @@ import type {
   EmployeeResetPasswordInput,
   EmployeeUpdateProfileInput,
 } from "./employee-auth.types";
+
+/** How long a password reset link stays valid. */
+const RESET_LINK_MINUTES = 60;
 
 class EmployeeAuthService {
   private formatDate(value: Date | string): string {
@@ -66,9 +70,7 @@ class EmployeeAuthService {
   }
 
   private getResetExpiryDate(): Date {
-    const date = new Date();
-    date.setHours(date.getHours() + 1);
-    return date;
+    return new Date(Date.now() + RESET_LINK_MINUTES * 60_000);
   }
 
   private buildAuthUser(employee: EmployeeAuthRow): AuthUser {
@@ -225,6 +227,9 @@ class EmployeeAuthService {
     if (config.isDevelopment) {
       logger.info(`Employee password reset link (dev): ${resetUrl}`);
     }
+    mailService.sendInBackground(
+      passwordResetEmail({ email: employee.email, name: employee.emp_name }, resetUrl, RESET_LINK_MINUTES)
+    );
   }
 
   async resetPassword(input: EmployeeResetPasswordInput): Promise<void> {
@@ -245,6 +250,7 @@ class EmployeeAuthService {
     await employeeAuthRepository.clearRefreshToken(employee.id);
 
     logger.info({ employeeId: employee.id }, "Employee password reset successful");
+    this.notifyPasswordChanged(employee);
   }
 
   async changePassword(
@@ -274,6 +280,13 @@ class EmployeeAuthService {
     await employeeAuthRepository.clearRefreshToken(employee.id);
 
     logger.info({ employeeId: employee.id }, "Employee password changed");
+    this.notifyPasswordChanged(employee);
+  }
+
+  private notifyPasswordChanged(employee: { email: string; emp_name: string }): void {
+    mailService.sendInBackground(
+      passwordChangedEmail({ email: employee.email, name: employee.emp_name }, `${config.app.frontendUrl}/login`)
+    );
   }
 
   async getProfile(employeeId: number): Promise<EmployeeAuthPublic> {

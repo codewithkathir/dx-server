@@ -7,6 +7,7 @@ import { Roles } from "../../shared/constants/roles";
 import type { RoleName } from "../../shared/constants/roles";
 import type { AuthUser } from "../../shared/types/express";
 import { logger } from "../../shared/logger/logger";
+import { mailService, passwordChangedEmail, passwordResetEmail } from "../../shared/mail";
 import { comparePassword, hashPassword } from "../../shared/utils/password.util";
 import {
   generateAccessToken,
@@ -30,6 +31,9 @@ import type {
   AdminRow,
   AdminUpdateProfileInput,
 } from "./admin.types";
+
+/** How long a password reset link stays valid. */
+const RESET_LINK_MINUTES = 60;
 
 class AdminAuthService {
   private toPublicAdmin(row: AdminRow): AdminPublic {
@@ -55,9 +59,7 @@ class AdminAuthService {
   }
 
   private getResetExpiryDate(): Date {
-    const date = new Date();
-    date.setHours(date.getHours() + 1);
-    return date;
+    return new Date(Date.now() + RESET_LINK_MINUTES * 60_000);
   }
 
   private async buildAuthUser(admin: AdminRow): Promise<AuthUser> {
@@ -197,10 +199,12 @@ class AdminAuthService {
       "Admin password reset token generated"
     );
 
-    // Enqueue email in production via BullMQ; log link in development
     if (config.isDevelopment) {
       logger.info(`Password reset link (dev): ${resetUrl}`);
     }
+    mailService.sendInBackground(
+      passwordResetEmail({ email: admin.email, name: admin.name }, resetUrl, RESET_LINK_MINUTES)
+    );
   }
 
   async resetPassword(input: AdminResetPasswordInput): Promise<void> {
@@ -221,6 +225,7 @@ class AdminAuthService {
     await adminRepository.clearRefreshToken(admin.id);
 
     logger.info({ adminId: admin.id }, "Admin password reset successful");
+    this.notifyPasswordChanged(admin);
   }
 
   async changePassword(
@@ -247,6 +252,13 @@ class AdminAuthService {
     await adminRepository.clearRefreshToken(admin.id);
 
     logger.info({ adminId: admin.id }, "Admin password changed");
+    this.notifyPasswordChanged(admin);
+  }
+
+  private notifyPasswordChanged(admin: { email: string; name: string }): void {
+    mailService.sendInBackground(
+      passwordChangedEmail({ email: admin.email, name: admin.name }, `${config.app.frontendUrl}/admin/login`)
+    );
   }
 
   async getProfile(adminId: number): Promise<AdminPublic> {
