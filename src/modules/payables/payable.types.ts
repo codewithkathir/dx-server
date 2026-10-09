@@ -39,6 +39,8 @@ export interface BillListRow extends BillRow {
   employee_name: string | null;
   employee_code: string | null;
   category_name: string | null;
+  /** Receipt of the linked expense claim (reimbursement bills). */
+  expense_support_file: string | null;
 }
 
 export interface PaymentRow {
@@ -77,10 +79,25 @@ export interface BillPublic {
   expenseId: number | null;
   source: BillSource;
   notes: string | null;
+  attachment: BillAttachment | null;
   status: BillStatus;
   isOverdue: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface BillAttachment {
+  fileName: string;
+  contentType: string;
+  isImage: boolean;
+  /** "bill" = uploaded on the bill; "expense" = the linked claim's receipt (read-only). */
+  source: "bill" | "expense";
+}
+
+export interface BillAttachmentFile {
+  absolutePath: string;
+  contentType: string;
+  filename: string;
 }
 
 export interface PaymentPublic {

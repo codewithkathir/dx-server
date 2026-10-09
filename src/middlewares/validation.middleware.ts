@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import type { ZodSchema } from "zod";
 import { ApiError } from "../shared/errors/api.error";
 import { ErrorCodes } from "../shared/errors/error-codes";
+import { fieldErrorMap } from "../shared/validators/zod-error-map";
 
 type ValidationTarget = "body" | "query" | "params";
 
@@ -10,7 +11,7 @@ export function validate(
   target: ValidationTarget = "body"
 ) {
   return (req: Request, _res: Response, next: NextFunction): void => {
-    const result = schema.safeParse(req[target]);
+    const result = schema.safeParse(req[target], { errorMap: fieldErrorMap });
 
     if (!result.success) {
       const errors = result.error.errors.map((err) => ({

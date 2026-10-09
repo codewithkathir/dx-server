@@ -128,6 +128,58 @@ export function getExpenseSupportFilePath(
   );
 }
 
+const BILL_UPLOAD_DIR = path.join(config.upload.path, "documents", "bills");
+
+const billStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    if (!fs.existsSync(BILL_UPLOAD_DIR)) {
+      fs.mkdirSync(BILL_UPLOAD_DIR, { recursive: true });
+    }
+    cb(null, BILL_UPLOAD_DIR);
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || "";
+    const random = Math.random().toString(36).slice(2, 10);
+    cb(null, `bill_${Date.now()}_${random}${ext}`);
+  },
+});
+
+const billUpload = multer({
+  storage: billStorage,
+  limits: { fileSize: config.upload.maxFileSize },
+  fileFilter: expenseFileFilter,
+});
+
+/** Required single `attachment` file for a payable bill (same types as expense receipts). */
+export function uploadBillAttachment(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  billUpload.single("attachment")(req, res, (err) => {
+    if (err) {
+      handleUploadError(err, req, res, next);
+      return;
+    }
+    if (!req.file) {
+      next(
+        new ApiError("Attachment can't be blank", ErrorCodes.VALIDATION_ERROR, 400, [
+          { field: "attachment", message: "Attachment can't be blank" },
+        ])
+      );
+      return;
+    }
+    next();
+  });
+}
+
+export function getBillAttachmentPath(file?: Express.Multer.File): string | null {
+  if (!file) {
+    return null;
+  }
+  return path.posix.join("documents", "bills", file.filename);
+}
+
 const EMPLOYEE_PROFILE_DIR = path.join(
   config.upload.path,
   "images",
