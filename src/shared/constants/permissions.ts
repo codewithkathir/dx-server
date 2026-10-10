@@ -48,6 +48,11 @@ export const Permissions = {
   RECEIVABLE_UPDATE: "receivable.update",
   RECEIVABLE_DELETE: "receivable.delete",
   RECEIVABLE_RECEIVE: "receivable.receive",
+  ASSET_CREATE: "asset.create",
+  ASSET_READ: "asset.read",
+  ASSET_UPDATE: "asset.update",
+  ASSET_DELETE: "asset.delete",
+  ASSET_ASSIGN: "asset.assign",
 } as const;
 
 /** Finance permissions added after the initial release (see the add-finance-permissions migration). */
@@ -71,6 +76,15 @@ export const FinancePermissions = [
   Permissions.RECEIVABLE_UPDATE,
   Permissions.RECEIVABLE_DELETE,
   Permissions.RECEIVABLE_RECEIVE,
+] as const;
+
+/** Asset permissions (see the add-asset-permissions migration). */
+export const AssetPermissions = [
+  Permissions.ASSET_CREATE,
+  Permissions.ASSET_READ,
+  Permissions.ASSET_UPDATE,
+  Permissions.ASSET_DELETE,
+  Permissions.ASSET_ASSIGN,
 ] as const;
 
 export type PermissionName = (typeof Permissions)[keyof typeof Permissions];
@@ -108,6 +122,7 @@ export const DefaultRolePermissions: Record<string, PermissionName[]> = {
     Permissions.EMPLOYEE_EXPENSE_UPDATE,
     Permissions.EMPLOYEE_EXPENSE_DELETE,
     ...FinancePermissions,
+    ...AssetPermissions,
   ],
   EDITOR: [Permissions.USER_READ],
   USER: [],
