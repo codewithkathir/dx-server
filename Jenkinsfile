@@ -6,14 +6,13 @@ pipeline {
         timestamps()
         disableConcurrentBuilds()
         timeout(time: 30, unit: 'MINUTES')
-        skipDefaultCheckout(true)
     }
 
     environment {
-        APP_NAME = 'dx-server'
-        APP_ENV = 'dev'
-        APP_PORT = '7002'
-        APP_DIR = '/var/www/projects/dx/dx-server'
+        APP_NAME      = 'dx-server'
+        APP_ENV       = 'dev'
+        APP_PORT      = '7002'
+        ENV_FILE      = '/var/www/projects/dx/dx-server/.env.dev'
         DEPLOY_HELPER = '/usr/local/sbin/dx-deploy-server-dev'
     }
 
@@ -22,7 +21,6 @@ pipeline {
             steps {
                 deleteDir()
                 checkout scm
-                sh 'git log -1 --oneline'
             }
         }
 
@@ -32,12 +30,15 @@ pipeline {
             }
         }
 
-        stage('Lint and Typecheck') {
+        stage('Lint') {
             steps {
-                sh '''
-                    npm run lint
-                    npm run typecheck
-                '''
+                sh 'npm run lint'
+            }
+        }
+
+        stage('Type Check') {
+            steps {
+                sh 'npm run typecheck'
             }
         }
 
@@ -45,15 +46,28 @@ pipeline {
             steps {
                 sh '''
                     set -eu
+                    test -f "$ENV_FILE" || {
+                        echo "ERROR: Dev environment file is missing"
+                        exit 1
+                    }
                     npm run build
-                    test -f dist/server.js
+                    test -f dist/server.js || {
+                        echo "ERROR: dist/server.js was not generated"
+                        exit 1
+                    }
+                    echo "Backend build completed"
                 '''
             }
         }
 
         stage('Prepare Production Dependencies') {
             steps {
-                sh 'npm ci --omit=dev'
+                sh '''
+                    set -eu
+                    npm ci --omit=dev
+                    test -d node_modules
+                    test -f dist/server.js
+                '''
             }
         }
 
@@ -61,6 +75,7 @@ pipeline {
             steps {
                 sh '''
                     set -eu
+                    test -f "$DEPLOY_HELPER"
                     sudo -n "$DEPLOY_HELPER"
                 '''
             }
@@ -70,18 +85,17 @@ pipeline {
             steps {
                 sh '''
                     set -eu
-
-                    for i in $(seq 1 15); do
-                        if curl -fsS \
-                            "http://127.0.0.1:${APP_PORT}/api/health"; then
-                            echo
-                            echo "Dev backend health check passed."
+                    for attempt in $(seq 1 15); do
+                        if curl --fail --silent \
+                            "http://127.0.0.1:${APP_PORT}/api/health" \
+                            -o /dev/null; then
+                            echo "Backend health check passed"
                             exit 0
                         fi
+                        echo "Waiting for backend (attempt ${attempt}/15)"
                         sleep 2
                     done
-
-                    echo "Dev backend health check failed."
+                    echo "ERROR: Backend health check failed"
                     exit 1
                 '''
             }
@@ -94,9 +108,6 @@ pipeline {
         }
         failure {
             echo 'DX Server Dev pipeline failed. Check the stage logs.'
-        }
-        always {
-            echo 'DX Server Dev pipeline finished.'
         }
     }
 }
