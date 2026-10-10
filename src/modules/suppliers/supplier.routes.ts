@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authenticateAdmin } from "../../middlewares/admin-auth.middleware";
 import { requireAdminRole } from "../../middlewares/role.middleware";
 import { requirePermission } from "../../middlewares/permission.middleware";
+import { uploadPartyPhoto } from "../../middlewares/upload.middleware";
 import { validate } from "../../middlewares/validation.middleware";
 import { Permissions } from "../../shared/constants/permissions";
 import { supplierController } from "./supplier.controller";
@@ -56,6 +57,28 @@ supplierRoutes.delete(
   requirePermission(Permissions.SUPPLIER_DELETE),
   validate(idParamSchema, "params"),
   supplierController.deleteSupplier
+);
+
+supplierRoutes.get(
+  "/:id/photo",
+  requirePermission(Permissions.SUPPLIER_READ),
+  validate(idParamSchema, "params"),
+  supplierController.streamPhoto
+);
+
+supplierRoutes.put(
+  "/:id/photo",
+  requirePermission(Permissions.SUPPLIER_UPDATE),
+  validate(idParamSchema, "params"),
+  uploadPartyPhoto("suppliers"),
+  supplierController.uploadPhoto
+);
+
+supplierRoutes.delete(
+  "/:id/photo",
+  requirePermission(Permissions.SUPPLIER_UPDATE),
+  validate(idParamSchema, "params"),
+  supplierController.removePhoto
 );
 
 export default supplierRoutes;

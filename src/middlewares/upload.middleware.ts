@@ -423,3 +423,60 @@ export function getAdminProfilePhotoPath(
   }
   return path.posix.join("images", "admins", file.filename);
 }
+
+export type PartyPhotoKind = "suppliers" | "customers";
+
+function partyPhotoUpload(kind: PartyPhotoKind) {
+  const dir = path.join(config.upload.path, "images", kind);
+  return multer({
+    storage: multer.diskStorage({
+      destination: (_req, _file, cb) => {
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        cb(null, dir);
+      },
+      filename: (_req, file, cb) => {
+        const random = Math.random().toString(36).slice(2, 10);
+        cb(null, `${kind.slice(0, -1)}_${Date.now()}_${random}${extensionFor(file.mimetype)}`);
+      },
+    }),
+    limits: { fileSize: PROFILE_MAX_BYTES, files: 1 },
+    fileFilter: (_req, file, cb) => {
+      if (!PROFILE_IMAGE_MIME_TYPES.has(file.mimetype)) {
+        cb(new ApiError("Photo must be JPEG, PNG, or WebP", ErrorCodes.VALIDATION_ERROR, 400) as unknown as Error);
+        return;
+      }
+      cb(null, true);
+    },
+  }).single("photo");
+}
+
+/** Required single `photo` (JPG/PNG/WebP, up to 2 MB) for a supplier or customer. */
+export function uploadPartyPhoto(kind: PartyPhotoKind) {
+  const upload = partyPhotoUpload(kind);
+  return (req: Request, res: Response, next: NextFunction): void => {
+    withVerifiedFile(
+      upload,
+      req,
+      res,
+      next,
+      () => {
+        if (!req.file) {
+          next(
+            new ApiError("Choose a photo to upload", ErrorCodes.VALIDATION_ERROR, 400, [
+              { field: "photo", message: "Choose a photo to upload" },
+            ])
+          );
+          return;
+        }
+        next();
+      },
+      PROFILE_MAX_BYTES
+    );
+  };
+}
+
+export function getPartyPhotoPath(kind: PartyPhotoKind, file: Express.Multer.File): string {
+  return path.posix.join("images", kind, file.filename);
+}

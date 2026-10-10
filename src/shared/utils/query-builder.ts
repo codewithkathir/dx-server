@@ -33,7 +33,9 @@ export function applyListQuery(
   options: ListQueryOptions,
   config: QueryBuilderConfig
 ): Knex.QueryBuilder {
-  let query = applySoftDelete(baseQuery, config.alias ?? config.table);
+  // Qualified so joined queries don't hit "column is ambiguous".
+  const table = config.alias ?? config.table;
+  let query = applySoftDelete(baseQuery, table);
 
   if (options.search && config.searchableFields?.length) {
     const term = `%${options.search}%`;
@@ -49,11 +51,11 @@ export function applyListQuery(
   }
 
   if (options.status) {
-    query = query.where("status", options.status);
+    query = query.where(`${table}.status`, options.status);
   }
 
   if (options.startDate && options.endDate) {
-    query = query.whereBetween("created_at", [
+    query = query.whereBetween(`${table}.created_at`, [
       options.startDate,
       options.endDate,
     ]);

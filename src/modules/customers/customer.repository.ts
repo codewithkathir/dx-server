@@ -99,6 +99,16 @@ class CustomerRepository extends BaseRepository<CustomerRow> {
         ...(updatedBy !== undefined ? { updated_by: updatedBy } : {}),
       });
   }
+
+  async setPhoto(id: number, photo: string | null, updatedBy?: number): Promise<void> {
+    await this.baseQuery()
+      .where({ id })
+      .update({
+        photo,
+        updated_at: this.db.fn.now(),
+        ...(updatedBy !== undefined ? { updated_by: updatedBy } : {}),
+      });
+  }
 }
 
 export const customerRepository = new CustomerRepository();

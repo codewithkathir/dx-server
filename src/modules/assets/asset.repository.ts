@@ -71,7 +71,6 @@ class AssetRepository extends BaseRepository<AssetRow> {
       sortableFields: ["assets.created_at", "assets.name", "assets.asset_no", "assets.status", "assets.purchase_date"],
       defaultSort: "assets.created_at",
     });
-    if (options.status) query = query.where("assets.status", options.status);
     if (options.category) query = query.where("assets.category", options.category);
     if (options.employeeId) query = query.where("a.employee_id", options.employeeId);
     return paginateQuery<AssetListRow>(query, options);

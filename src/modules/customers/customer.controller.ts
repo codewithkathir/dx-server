@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { getPartyPhotoPath } from "../../middlewares/upload.middleware";
 import { asyncHandler } from "../../shared/utils/async-handler";
 import {
   createdResponse,
@@ -48,6 +49,27 @@ class CustomerController {
     const { id } = req.validated!.params as IdParam;
     await customerService.deleteCustomer(id, req.user?.id);
     successResponse(res, null, "Customer deleted successfully");
+  });
+
+  uploadPhoto = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.validated!.params as IdParam;
+    const customer = await customerService.setPhoto(id, getPartyPhotoPath("customers", req.file!), req.user?.id);
+    successResponse(res, customer, "Photo updated successfully");
+  });
+
+  removePhoto = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.validated!.params as IdParam;
+    const customer = await customerService.removePhoto(id, req.user?.id);
+    successResponse(res, customer, "Photo removed successfully");
+  });
+
+  streamPhoto = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.validated!.params as IdParam;
+    const file = await customerService.getPhotoFile(id);
+    res.setHeader("Content-Type", file.contentType);
+    res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(file.filename)}"`);
+    res.setHeader("Cache-Control", "private, max-age=3600");
+    res.sendFile(file.absolutePath);
   });
 }
 

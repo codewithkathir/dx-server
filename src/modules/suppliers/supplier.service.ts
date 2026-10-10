@@ -1,5 +1,10 @@
 import { ApiError } from "../../shared/errors/api.error";
 import { ErrorCodes } from "../../shared/errors/error-codes";
+import {
+  getMimeTypeFromFilename,
+  removeUploadFile,
+  resolveUploadAbsolutePath,
+} from "../../shared/utils/file.util";
 import { buildPaginationMeta } from "../../shared/utils/pagination.util";
 import { supplierRepository } from "./supplier.repository";
 import type {
@@ -27,6 +32,7 @@ class SupplierService {
       whatsappNo: row.whatsapp_no,
       status: row.status,
       comments: row.comments,
+      photo: row.photo,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       ...(row.open_bill_count !== undefined
@@ -100,6 +106,42 @@ class SupplierService {
       );
     }
     await supplierRepository.softDelete(id, updatedBy);
+  }
+
+  /** Replaces the supplier's picture; the old file (or the new one, on failure) is removed. */
+  async setPhoto(id: number, photoPath: string, updatedBy?: number): Promise<SupplierPublic> {
+    let previous: string | null;
+    try {
+      previous = (await this.assertSupplierExists(id)).photo;
+      await supplierRepository.setPhoto(id, photoPath, updatedBy);
+    } catch (error) {
+      await removeUploadFile(photoPath);
+      throw error;
+    }
+    if (previous) await removeUploadFile(previous);
+    return this.getSupplierById(id);
+  }
+
+  async removePhoto(id: number, updatedBy?: number): Promise<SupplierPublic> {
+    const row = await this.assertSupplierExists(id);
+    if (row.photo) {
+      await supplierRepository.setPhoto(id, null, updatedBy);
+      await removeUploadFile(row.photo);
+    }
+    return this.getSupplierById(id);
+  }
+
+  async getPhotoFile(id: number): Promise<{ absolutePath: string; contentType: string; filename: string }> {
+    const row = await this.assertSupplierExists(id);
+    if (!row.photo) {
+      throw new ApiError("Photo not found", ErrorCodes.NOT_FOUND, 404);
+    }
+    const filename = row.photo.split("/").pop() ?? "photo.jpg";
+    return {
+      absolutePath: resolveUploadAbsolutePath(row.photo),
+      contentType: getMimeTypeFromFilename(filename),
+      filename,
+    };
   }
 }
 

@@ -19,6 +19,7 @@ export interface CustomerRow extends BaseEntity {
   payment_terms: string | null;
   status: PartyStatus;
   comments: string | null;
+  photo: string | null;
   /** Only on list rows: unpaid balance of sent / part-paid invoices. */
   outstanding_amount?: string | number;
 }
@@ -40,6 +41,7 @@ export interface CustomerPublic {
   paymentTerms: string | null;
   status: PartyStatus;
   comments: string | null;
+  photo: string | null;
   createdAt: Date;
   updatedAt: Date;
   outstanding?: number;

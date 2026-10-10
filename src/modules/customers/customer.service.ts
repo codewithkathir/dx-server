@@ -1,5 +1,10 @@
 import { ApiError } from "../../shared/errors/api.error";
 import { ErrorCodes } from "../../shared/errors/error-codes";
+import {
+  getMimeTypeFromFilename,
+  removeUploadFile,
+  resolveUploadAbsolutePath,
+} from "../../shared/utils/file.util";
 import { buildPaginationMeta } from "../../shared/utils/pagination.util";
 import { customerRepository } from "./customer.repository";
 import type {
@@ -30,6 +35,7 @@ class CustomerService {
       paymentTerms: row.payment_terms,
       status: row.status,
       comments: row.comments,
+      photo: row.photo,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       ...(row.outstanding_amount !== undefined ? { outstanding: Number(row.outstanding_amount) } : {}),
@@ -101,6 +107,42 @@ class CustomerService {
       );
     }
     await customerRepository.softDelete(id, updatedBy);
+  }
+
+  /** Replaces the customer's picture; the old file (or the new one, on failure) is removed. */
+  async setPhoto(id: number, photoPath: string, updatedBy?: number): Promise<CustomerPublic> {
+    let previous: string | null;
+    try {
+      previous = (await this.assertCustomerExists(id)).photo;
+      await customerRepository.setPhoto(id, photoPath, updatedBy);
+    } catch (error) {
+      await removeUploadFile(photoPath);
+      throw error;
+    }
+    if (previous) await removeUploadFile(previous);
+    return this.getCustomerById(id);
+  }
+
+  async removePhoto(id: number, updatedBy?: number): Promise<CustomerPublic> {
+    const row = await this.assertCustomerExists(id);
+    if (row.photo) {
+      await customerRepository.setPhoto(id, null, updatedBy);
+      await removeUploadFile(row.photo);
+    }
+    return this.getCustomerById(id);
+  }
+
+  async getPhotoFile(id: number): Promise<{ absolutePath: string; contentType: string; filename: string }> {
+    const row = await this.assertCustomerExists(id);
+    if (!row.photo) {
+      throw new ApiError("Photo not found", ErrorCodes.NOT_FOUND, 404);
+    }
+    const filename = row.photo.split("/").pop() ?? "photo.jpg";
+    return {
+      absolutePath: resolveUploadAbsolutePath(row.photo),
+      contentType: getMimeTypeFromFilename(filename),
+      filename,
+    };
   }
 }
 
