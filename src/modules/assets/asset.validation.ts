@@ -103,6 +103,14 @@ export const returnAssetSchema = z
   .strict();
 
 export const assignmentIdParamSchema = z.object({ assignmentId: z.coerce.number().int().positive() });
+export const assetImageParamSchema = z.object({
+  id: z.coerce.number().int().positive(),
+  imageId: z.coerce.number().int().positive(),
+});
+export const assignmentImageParamSchema = z.object({
+  assignmentId: z.coerce.number().int().positive(),
+  imageId: z.coerce.number().int().positive(),
+});
 
 export { idParamSchema };
 
@@ -112,3 +120,5 @@ export type AssetListQueryParams = z.infer<typeof assetListQuerySchema>;
 export type AssignAssetBody = z.infer<typeof assignAssetSchema>;
 export type ReturnAssetBody = z.infer<typeof returnAssetSchema>;
 export type AssignmentIdParam = z.infer<typeof assignmentIdParamSchema>;
+export type AssetImageParam = z.infer<typeof assetImageParamSchema>;
+export type AssignmentImageParam = z.infer<typeof assignmentImageParamSchema>;

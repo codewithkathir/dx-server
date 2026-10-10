@@ -6,6 +6,7 @@ import type { AssetListQueryParams } from "./asset.validation";
 import type {
   AssetListRow,
   AssetRow,
+  AssetImageRow,
   AssetSummary,
   AssignmentHistoryRow,
   AssignmentRow,
@@ -34,8 +35,33 @@ class AssetRepository extends BaseRepository<AssetRow> {
         "a.expected_return_date",
         "a.acknowledged_at",
         "e.emp_name as employee_name",
-        "e.employee_code as employee_code"
+        "e.employee_code as employee_code",
+        db.raw("(SELECT MIN(i.id) FROM asset_images i WHERE i.asset_id = assets.id) AS cover_image_id"),
+        db.raw("(SELECT COUNT(*) FROM asset_images i WHERE i.asset_id = assets.id) AS image_count")
       );
+  }
+
+  async listImages(assetIds: number[], db: Db = this.db): Promise<AssetImageRow[]> {
+    if (assetIds.length === 0) return [];
+    return db("asset_images").whereIn("asset_id", assetIds).orderBy("id", "asc");
+  }
+
+  async countImages(assetId: number, db: Db = this.db): Promise<number> {
+    const row = await db("asset_images").where({ asset_id: assetId }).count({ n: "*" }).first();
+    return Number(row?.n ?? 0);
+  }
+
+  async findImage(assetId: number, imageId: number, db: Db = this.db): Promise<AssetImageRow | undefined> {
+    return db("asset_images").where({ id: imageId, asset_id: assetId }).first();
+  }
+
+  async insertImage(db: Db, row: Omit<AssetImageRow, "id" | "created_at">): Promise<number> {
+    const [id] = await db("asset_images").insert(row);
+    return id as number;
+  }
+
+  async deleteImage(db: Db, imageId: number): Promise<void> {
+    await db("asset_images").where({ id: imageId }).del();
   }
 
   async findAllPaginated(options: AssetListQueryParams): Promise<{ data: AssetListRow[]; total: number }> {

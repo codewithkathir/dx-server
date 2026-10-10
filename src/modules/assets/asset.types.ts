@@ -25,6 +25,8 @@ export interface AssetListRow extends AssetRow {
   assigned_date: string | null;
   expected_return_date: string | null;
   acknowledged_at: Date | null;
+  cover_image_id: number | null;
+  image_count: number | string;
 }
 
 export interface AssignmentRow {
@@ -89,8 +91,36 @@ export interface AssetPublic {
   status: AssetStatus;
   notes: string | null;
   currentAssignment: CurrentAssignment | null;
+  /** First photo, for list thumbnails. */
+  coverImageId: number | null;
+  imageCount: number;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface AssetImageRow {
+  id: number;
+  asset_id: number;
+  file_path: string;
+  original_name: string | null;
+  mime_type: string;
+  size_bytes: number;
+  created_by: number | null;
+  created_at: Date;
+}
+
+export interface AssetImagePublic {
+  id: number;
+  originalName: string | null;
+  mimeType: string;
+  sizeBytes: number;
+  createdAt: Date;
+}
+
+export interface AssetImageFile {
+  absolutePath: string;
+  contentType: string;
+  filename: string;
 }
 
 export interface AssignmentPublic {
@@ -112,6 +142,7 @@ export interface AssignmentPublic {
 
 export interface AssetDetail extends AssetPublic {
   history: AssignmentPublic[];
+  images: AssetImagePublic[];
 }
 
 export interface EmployeeAssetPublic {
@@ -132,6 +163,7 @@ export interface EmployeeAssetPublic {
   returnedDate: string | null;
   conditionIn: AssetCondition | null;
   returnNotes: string | null;
+  images: AssetImagePublic[];
 }
 
 export interface AssetSummary {

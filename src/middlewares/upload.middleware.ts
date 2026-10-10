@@ -79,11 +79,12 @@ function withVerifiedFile(
   req: Request,
   res: Response,
   next: NextFunction,
-  afterVerify: () => void = next
+  afterVerify: () => void = next,
+  maxBytes: number = config.upload.maxFileSize
 ): void {
   run(req, res, (err) => {
     if (err) {
-      handleUploadError(err, req, res, next);
+      handleUploadError(err, req, res, next, maxBytes);
       return;
     }
     assertUploadedFileIsGenuine(req.file).then(afterVerify, next);
@@ -157,19 +158,23 @@ export function optionalExpenseSupportFileUpload(
   withVerifiedFile(uploadExpenseSupportFile, req, res, next);
 }
 
+const formatMb = (bytes: number) => `${Math.round((bytes / (1024 * 1024)) * 10) / 10} MB`;
+
 export function handleUploadError(
   err: unknown,
   _req: Request,
   _res: Response,
-  next: NextFunction
+  next: NextFunction,
+  maxBytes: number = config.upload.maxFileSize
 ): void {
   if (err instanceof multer.MulterError) {
     if (err.code === "LIMIT_FILE_SIZE") {
       next(
         new ApiError(
-          "File size exceeds the allowed limit",
+          `File is too large. The maximum is ${formatMb(maxBytes)}.`,
           ErrorCodes.VALIDATION_ERROR,
-          400
+          413,
+          [{ field: err.field ?? "file", message: `File is too large. The maximum is ${formatMb(maxBytes)}.` }]
         )
       );
       return;
@@ -242,6 +247,50 @@ export function getBillAttachmentPath(file?: Express.Multer.File): string | null
   return path.posix.join("documents", "bills", file.filename);
 }
 
+const ASSET_IMAGE_DIR = path.join(config.upload.path, "images", "assets");
+
+const assetImageUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      if (!fs.existsSync(ASSET_IMAGE_DIR)) {
+        fs.mkdirSync(ASSET_IMAGE_DIR, { recursive: true });
+      }
+      cb(null, ASSET_IMAGE_DIR);
+    },
+    filename: (_req, file, cb) => {
+      const random = Math.random().toString(36).slice(2, 10);
+      cb(null, `asset_${Date.now()}_${random}${extensionFor(file.mimetype)}`);
+    },
+  }),
+  limits: { fileSize: config.upload.maxFileSize, files: 1 },
+  fileFilter: (_req, file, cb) => {
+    if (!PROFILE_IMAGE_MIME_TYPES.has(file.mimetype)) {
+      cb(new ApiError("Asset photos must be JPG, PNG or WebP", ErrorCodes.VALIDATION_ERROR, 400) as unknown as Error);
+      return;
+    }
+    cb(null, true);
+  },
+});
+
+/** Required single `image` (JPG/PNG/WebP, up to MAX_FILE_SIZE) for an asset photo. */
+export function uploadAssetImage(req: Request, res: Response, next: NextFunction): void {
+  withVerifiedFile(assetImageUpload.single("image"), req, res, next, () => {
+    if (!req.file) {
+      next(
+        new ApiError("Choose a photo to upload", ErrorCodes.VALIDATION_ERROR, 400, [
+          { field: "image", message: "Choose a photo to upload" },
+        ])
+      );
+      return;
+    }
+    next();
+  });
+}
+
+export function getAssetImagePath(file: Express.Multer.File): string {
+  return path.posix.join("images", "assets", file.filename);
+}
+
 const EMPLOYEE_PROFILE_DIR = path.join(
   config.upload.path,
   "images",
@@ -309,7 +358,7 @@ export function optionalEmployeeProfilePhotoUpload(
     next();
     return;
   }
-  withVerifiedFile(uploadEmployeeProfilePhoto, req, res, next);
+  withVerifiedFile(uploadEmployeeProfilePhoto, req, res, next, next, PROFILE_MAX_BYTES);
 }
 
 export function getEmployeeProfilePhotoPath(
@@ -363,7 +412,7 @@ export function optionalAdminProfilePhotoUpload(
     next();
     return;
   }
-  withVerifiedFile(uploadAdminProfilePhoto, req, res, next);
+  withVerifiedFile(uploadAdminProfilePhoto, req, res, next, next, PROFILE_MAX_BYTES);
 }
 
 export function getAdminProfilePhotoPath(

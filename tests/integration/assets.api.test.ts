@@ -79,6 +79,54 @@ describe("Assets API", () => {
     expect(summary.body.data.byStatus.in_repair).toBe(1);
   });
 
+  it("stores asset photos within the size and count limits", async () => {
+    const { accessToken: adminToken } = await loginAsAdmin(app);
+    const created = await request(app)
+      .post("/api/v1/admin/assets")
+      .set(authHeader(adminToken))
+      .send({ name: "Camera test phone", category: "phone" })
+      .expect(201);
+    const assetId = created.body.data.id as number;
+    const png = Buffer.from(
+      "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c63f8cfc0f01f0005000201a5f3a1f60000000049454e44ae426082",
+      "hex"
+    );
+
+    const added = await request(app)
+      .post(`/api/v1/admin/assets/${assetId}/images`)
+      .set(authHeader(adminToken))
+      .attach("image", png, { filename: "front.png", contentType: "image/png" })
+      .expect(201);
+    expect(added.body.data.images).toHaveLength(1);
+    const imageId = added.body.data.images[0].id as number;
+
+    const tooBig = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(6 * 1024 * 1024)]);
+    const rejected = await request(app)
+      .post(`/api/v1/admin/assets/${assetId}/images`)
+      .set(authHeader(adminToken))
+      .attach("image", tooBig, { filename: "huge.jpg", contentType: "image/jpeg" })
+      .expect(413);
+    expect(rejected.body.message).toMatch(/maximum is 5 MB/);
+
+    await request(app)
+      .post(`/api/v1/admin/assets/${assetId}/images`)
+      .set(authHeader(adminToken))
+      .attach("image", Buffer.from("%PDF-1.4"), { filename: "doc.pdf", contentType: "application/pdf" })
+      .expect(400);
+
+    const photo = await request(app)
+      .get(`/api/v1/admin/assets/${assetId}/images/${imageId}`)
+      .set(authHeader(adminToken))
+      .expect(200);
+    expect(photo.headers["content-type"]).toBe("image/png");
+
+    const removed = await request(app)
+      .delete(`/api/v1/admin/assets/${assetId}/images/${imageId}`)
+      .set(authHeader(adminToken))
+      .expect(200);
+    expect(removed.body.data.images).toHaveLength(0);
+  });
+
   it("rejects list filters the schema doesn't know", async () => {
     const { accessToken: adminToken } = await loginAsAdmin(app);
     const res = await request(app).get("/api/v1/admin/assets?unknown=1").set(authHeader(adminToken));
