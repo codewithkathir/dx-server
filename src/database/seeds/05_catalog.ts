@@ -3,6 +3,46 @@ import type { Knex } from "knex";
 const SAMPLE_CATEGORY_NAME = "General Services";
 
 export async function seed(knex: Knex): Promise<void> {
+  // Independent of the category check below; existing codes are left as they are.
+  await knex("payment_methods").insert([
+    {
+      name: "Cash",
+      code: "CASH",
+      description: "Cash payment",
+      status: "active",
+      sort_order: 1,
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+    },
+    {
+      name: "Bank Transfer",
+      code: "BANK_TRANSFER",
+      description: "Direct bank transfer",
+      status: "active",
+      sort_order: 2,
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+    },
+    {
+      name: "Credit Card",
+      code: "CREDIT_CARD",
+      description: "Card payments",
+      status: "active",
+      sort_order: 3,
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+    },
+    {
+      name: "Cheque",
+      code: "CHEQUE",
+      description: "Cheque payment (inactive sample)",
+      status: "inactive",
+      sort_order: 4,
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+    },
+  ]).onConflict("code").ignore();
+
   const existing = await knex("categories")
     .where({ name: SAMPLE_CATEGORY_NAME })
     .whereNull("deleted_at")
@@ -57,43 +97,4 @@ export async function seed(knex: Knex): Promise<void> {
     created_at: knex.fn.now(),
     updated_at: knex.fn.now(),
   });
-
-  await knex("payment_methods").insert([
-    {
-      name: "Cash",
-      code: "CASH",
-      description: "Cash payment",
-      status: "active",
-      sort_order: 1,
-      created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-    },
-    {
-      name: "Bank Transfer",
-      code: "BANK_TRANSFER",
-      description: "Direct bank transfer",
-      status: "active",
-      sort_order: 2,
-      created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-    },
-    {
-      name: "Credit Card",
-      code: "CREDIT_CARD",
-      description: "Card payments",
-      status: "active",
-      sort_order: 3,
-      created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-    },
-    {
-      name: "Cheque",
-      code: "CHEQUE",
-      description: "Cheque payment (inactive sample)",
-      status: "inactive",
-      sort_order: 4,
-      created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-    },
-  ]);
 }
