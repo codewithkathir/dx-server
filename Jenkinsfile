@@ -10,11 +10,11 @@ pipeline {
     }
 
     environment {
-        APP_NAME = 'dx-server'
-        APP_ENV = 'dev'
-        APP_PORT = '7002'
-        APP_DIR = '/var/www/projects/dx/dx-server'
-        DEPLOY_HELPER = '/usr/local/sbin/dx-deploy-server-dev'
+        APP_NAME = 'dx-server-qa'
+        APP_ENV = 'qa'
+        APP_PORT = '7004'
+        APP_DIR = '/var/www/projects/dx/dx-server-qa'
+        DEPLOY_HELPER = '/usr/local/sbin/dx-deploy-server-qa'
     }
 
     stages {
@@ -75,13 +75,13 @@ pipeline {
                         if curl -fsS \
                             "http://127.0.0.1:${APP_PORT}/api/health"; then
                             echo
-                            echo "Dev backend health check passed."
+                            echo "QA backend health check passed."
                             exit 0
                         fi
                         sleep 2
                     done
 
-                    echo "Dev backend health check failed."
+                    echo "QA backend health check failed."
                     exit 1
                 '''
             }
@@ -90,13 +90,13 @@ pipeline {
 
     post {
         success {
-            echo 'DX Server Dev deployment completed successfully.'
+            echo 'DX Server QA deployment completed successfully.'
         }
         failure {
-            echo 'DX Server Dev pipeline failed. Check the stage logs.'
+            echo 'DX Server QA pipeline failed. Check the stage logs.'
         }
         always {
-            echo 'DX Server Dev pipeline finished.'
+            echo 'DX Server QA pipeline finished.'
         }
     }
 }
