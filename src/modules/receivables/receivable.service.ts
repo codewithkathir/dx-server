@@ -17,6 +17,7 @@ import {
   isOverdue,
   type SettlementStatus,
   toFils,
+  isFutureDate,
   todayIso,
 } from "../../shared/utils/money.util";
 import { buildPaginationMeta } from "../../shared/utils/pagination.util";
@@ -235,7 +236,7 @@ class ReceivableService {
   }
 
   async recordReceipt(invoiceId: number, input: RecordReceiptBody, createdBy?: number): Promise<InvoiceDetail> {
-    if (input.receiptDate > todayIso()) throw badRequest("Receipt date can't be in the future");
+    if (isFutureDate(input.receiptDate)) throw badRequest("Receipt date can't be in the future");
     const method = await paymentMethodRepository.findById(input.paymentMethodId);
     if (!method || method.status !== "active") throw badRequest("Payment method is not available");
 

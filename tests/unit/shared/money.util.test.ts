@@ -6,6 +6,7 @@ import {
   filsToDecimalString,
   fromFils,
   hasAtMostTwoDecimals,
+  isFutureDate,
   isOverdue,
   toFils,
   todayIso,
@@ -110,6 +111,20 @@ describe("money.util", () => {
       expect(isOverdue("paid", "2026-01-01", 0, today)).toBe(false);
       expect(isOverdue("draft", "2026-01-01", 100, today)).toBe(false);
       expect(isOverdue("cancelled", "2026-01-01", 100, today)).toBe(false);
+    });
+  });
+
+  describe("isFutureDate", () => {
+    const now = new Date(2026, 9, 11, 22, 0);
+    it("allows today and past dates", () => {
+      expect(isFutureDate("2026-10-11", now)).toBe(false);
+      expect(isFutureDate("2026-10-01", now)).toBe(false);
+    });
+    it("allows tomorrow for users in timezones ahead of the server", () => {
+      expect(isFutureDate("2026-10-12", now)).toBe(false);
+    });
+    it("rejects dates beyond tomorrow", () => {
+      expect(isFutureDate("2026-10-13", now)).toBe(true);
     });
   });
 });

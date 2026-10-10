@@ -13,6 +13,7 @@ import {
   isOverdue,
   type SettlementStatus,
   toFils,
+  isFutureDate,
   todayIso,
 } from "../../shared/utils/money.util";
 import {
@@ -338,7 +339,7 @@ class PayableService {
     input: RecordPaymentBody,
     createdBy?: number
   ): Promise<BillDetail> {
-    if (input.paymentDate > todayIso()) throw badRequest("Payment date can't be in the future");
+    if (isFutureDate(input.paymentDate)) throw badRequest("Payment date can't be in the future");
     const method = await paymentMethodRepository.findById(input.paymentMethodId);
     if (!method || method.status !== "active") throw badRequest("Payment method is not available");
 

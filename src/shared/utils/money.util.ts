@@ -86,6 +86,15 @@ export function todayIso(now: Date = new Date()): string {
   return `${now.getFullYear()}-${month}-${day}`;
 }
 
+/**
+ * True when a picked date is after today. Browsers send "today" in the user's
+ * timezone, which can already be tomorrow on the server (e.g. a UAE user just
+ * after midnight against a UTC server), so one day of slack is allowed.
+ */
+export function isFutureDate(date: string, now: Date = new Date()): boolean {
+  return date > addDaysIso(todayIso(now), 1);
+}
+
 /** Add days to a YYYY-MM-DD date, returning YYYY-MM-DD. */
 export function addDaysIso(date: string, days: number): string {
   const [year, month, day] = date.split("-").map(Number) as [number, number, number];

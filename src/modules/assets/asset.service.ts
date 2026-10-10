@@ -8,7 +8,7 @@ import { logger } from "../../shared/logger/logger";
 import { assetAssignedEmail, assetReturnedEmail, mailService, type AssetMailInfo } from "../../shared/mail";
 import { DocumentSequences, nextDocumentNumber } from "../../shared/utils/document-number.util";
 import { getMimeTypeFromFilename, removeUploadFile, resolveUploadAbsolutePath } from "../../shared/utils/file.util";
-import { todayIso } from "../../shared/utils/money.util";
+import { isFutureDate, todayIso } from "../../shared/utils/money.util";
 import { buildPaginationMeta } from "../../shared/utils/pagination.util";
 import { employeeRepository } from "../employees/employee.repository";
 import { assetRepository } from "./asset.repository";
@@ -245,7 +245,7 @@ class AssetService {
   }
 
   async assign(id: number, input: AssignAssetBody, assignedBy?: number): Promise<AssetDetail> {
-    if (input.assignedDate > todayIso()) throw badRequest("The assigned date can't be in the future");
+    if (isFutureDate(input.assignedDate)) throw badRequest("The assigned date can't be in the future");
     const employee = await employeeRepository.findById(input.employeeId);
     if (!employee) throw notFound("Employee not found");
     if (employee.status !== "active") throw badRequest("Only active employees can be given assets");
@@ -289,7 +289,7 @@ class AssetService {
   }
 
   async returnAsset(id: number, input: ReturnAssetBody, returnedBy?: number): Promise<AssetDetail> {
-    if (input.returnedDate > todayIso()) throw badRequest("The return date can't be in the future");
+    if (isFutureDate(input.returnedDate)) throw badRequest("The return date can't be in the future");
     const { asset, employeeId } = await db.transaction(async (trx) => {
       const locked = await assetRepository.findByIdForUpdate(trx, id);
       if (!locked) throw notFound("Asset not found");
