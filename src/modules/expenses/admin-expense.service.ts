@@ -13,6 +13,7 @@ import {
   getMimeTypeFromFilename,
   resolveUploadAbsolutePath,
 } from "../../shared/utils/file.util";
+import { notifyClaimApproved, notifyClaimRejected } from "./expense-notifications";
 import { expenseRepository } from "./expense.repository";
 import type { ExpenseSupportFileResource } from "./expense.service";
 import { expenseService } from "./expense.service";
@@ -124,6 +125,7 @@ class AdminExpenseService {
       });
     });
     logger.info({ expenseId, approvedBy }, "Expense approved, reimbursement bill created");
+    notifyClaimApproved(expenseId);
     return this.getExpenseById(expenseId);
   }
 
@@ -151,6 +153,7 @@ class AdminExpenseService {
       });
     });
     logger.info({ expenseId, rejectedBy }, "Expense rejected");
+    notifyClaimRejected(expenseId);
     return this.getExpenseById(expenseId);
   }
 

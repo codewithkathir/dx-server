@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { getBillAttachmentPath } from "../../middlewares/upload.middleware";
 import { asyncHandler } from "../../shared/utils/async-handler";
 import {
   createdResponse,
@@ -41,6 +42,25 @@ class PayableController {
     const { id } = req.validated!.params as IdParam;
     const body = req.validated!.body as UpdateBillBody;
     successResponse(res, await payableService.updateBill(id, body, req.user?.id), "Bill updated successfully");
+  });
+
+  streamAttachment = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.validated!.params as IdParam;
+    const file = await payableService.getAttachmentFile(id);
+    res.setHeader("Content-Type", file.contentType);
+    res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(file.filename)}"`);
+    res.sendFile(file.absolutePath);
+  });
+
+  uploadAttachment = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.validated!.params as IdParam;
+    const filePath = getBillAttachmentPath(req.file) as string;
+    successResponse(res, await payableService.setAttachment(id, filePath, req.user?.id), "Attachment uploaded successfully");
+  });
+
+  removeAttachment = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.validated!.params as IdParam;
+    successResponse(res, await payableService.removeAttachment(id, req.user?.id), "Attachment removed successfully");
   });
 
   issueBill = asyncHandler(async (req: Request, res: Response) => {

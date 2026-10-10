@@ -1,3 +1,4 @@
+import path from "path";
 import type { Knex } from "knex";
 import { db } from "../../database/knex";
 import type { BillStatus } from "../../shared/constants/finance";
@@ -14,12 +15,21 @@ import {
   toFils,
   todayIso,
 } from "../../shared/utils/money.util";
+import {
+  getMimeTypeFromFilename,
+  isImageFilename,
+  removeUploadFile,
+  resolveUploadAbsolutePath,
+} from "../../shared/utils/file.util";
 import { buildPaginationMeta } from "../../shared/utils/pagination.util";
 import { categoryService } from "../categories/category.service";
+import { notifyReimbursementPayment } from "../expenses/expense-notifications";
 import { paymentMethodRepository } from "../payment-methods/payment-method.repository";
 import { supplierService } from "../suppliers/supplier.service";
 import { payableRepository } from "./payable.repository";
 import type {
+  BillAttachment,
+  BillAttachmentFile,
   BillDetail,
   BillListQuery,
   BillListRow,
@@ -68,10 +78,23 @@ class PayableService {
       expenseId: row.expense_id,
       source: row.source,
       notes: row.notes,
+      attachment: this.toAttachment(row),
       status: row.status,
       isOverdue: isOverdue(row.status as SettlementStatus, row.due_date, total - paid, today),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+    };
+  }
+
+  private toAttachment(row: BillListRow): BillAttachment | null {
+    const file = row.support_file ?? row.expense_support_file;
+    if (!file) return null;
+    const fileName = path.basename(file);
+    return {
+      fileName,
+      contentType: getMimeTypeFromFilename(fileName),
+      isImage: isImageFilename(fileName),
+      source: row.support_file ? "bill" : "expense",
     };
   }
 
@@ -103,6 +126,43 @@ class PayableService {
     if (!row) throw notFound("Bill not found");
     const payments = await payableRepository.listPayments(id, trx);
     return { ...this.toPublic(row), payments: payments.map((p) => this.toPublicPayment(p)) };
+  }
+
+  async getAttachmentFile(id: number): Promise<BillAttachmentFile> {
+    const row = await payableRepository.findDetailById(id);
+    if (!row) throw notFound("Bill not found");
+    const file = row.support_file ?? row.expense_support_file;
+    if (!file) throw notFound("Attachment not found");
+    const filename = path.basename(file);
+    return {
+      absolutePath: resolveUploadAbsolutePath(file),
+      contentType: getMimeTypeFromFilename(filename),
+      filename,
+    };
+  }
+
+  /** Stores (or replaces) the bill's own document. `filePath` is already on disk. */
+  async setAttachment(id: number, filePath: string, updatedBy?: number): Promise<BillDetail> {
+    const bill = await payableRepository.findById(id);
+    if (!bill || bill.source === "expense") {
+      await removeUploadFile(filePath);
+      if (!bill) throw notFound("Bill not found");
+      throw badRequest("Reimbursement bills use the expense claim's receipt");
+    }
+    await payableRepository.updateBill(db, id, { support_file: filePath, updated_by: updatedBy ?? null });
+    if (bill.support_file) await removeUploadFile(bill.support_file);
+    logger.info({ billId: id, updatedBy }, "Payable bill attachment uploaded");
+    return this.getBill(id);
+  }
+
+  async removeAttachment(id: number, updatedBy?: number): Promise<BillDetail> {
+    const bill = await payableRepository.findById(id);
+    if (!bill) throw notFound("Bill not found");
+    if (!bill.support_file) throw notFound("Attachment not found");
+    await payableRepository.updateBill(db, id, { support_file: null, updated_by: updatedBy ?? null });
+    await removeUploadFile(bill.support_file);
+    logger.info({ billId: id, updatedBy }, "Payable bill attachment removed");
+    return this.getBill(id);
   }
 
   async getReimbursements(expenseIds: number[]): Promise<Map<number, ExpenseReimbursement>> {
@@ -314,6 +374,11 @@ class PayableService {
     });
 
     logger.info({ billId, amount: input.amount, createdBy }, "Payable payment recorded");
+    notifyReimbursementPayment(billId, {
+      amount: input.amount,
+      date: input.paymentDate,
+      paymentMethodId: input.paymentMethodId,
+    });
     return this.getBill(billId);
   }
 

@@ -39,3 +39,19 @@ export async function loginAsEmployee(app: Application): Promise<AuthTokens> {
 export function authHeader(accessToken: string): { Authorization: string } {
   return { Authorization: `Bearer ${accessToken}` };
 }
+
+/** Generic user portal (users table, actor "user"): the only login /api/v1/users accepts. */
+export async function loginAsUser(app: Application): Promise<AuthTokens> {
+  const res = await request(app)
+    .post("/api/v1/auth/login")
+    .send({
+      email: "admin@example.com",
+      password: "Admin@12345",
+    })
+    .expect(200);
+
+  return {
+    accessToken: res.body.data.accessToken,
+    refreshToken: res.body.data.refreshToken,
+  };
+}

@@ -52,9 +52,11 @@ class DropdownRepository {
       .orderBy("name", "asc") as Promise<DropdownOption[]>;
   }
 
+  /** Only active employees: claims can't be saved against inactive ones (see findWhomById). */
   async findWhomEmployees(): Promise<WhomDropdownOption[]> {
     const rows = await applySoftDelete(this.db("employees"))
       .whereNotNull("created_by")
+      .where({ status: "active" })
       .select("id", "emp_name", "employee_code", "status")
       .orderBy("emp_name", "asc");
 

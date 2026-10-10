@@ -3,6 +3,7 @@ import type { Knex } from "knex";
 export const DocumentSequences = {
   RECEIVABLE_INVOICE: "INV",
   EXPENSE_BILL: "EXP",
+  ASSET: "AST",
 } as const;
 
 export type DocumentSequence =

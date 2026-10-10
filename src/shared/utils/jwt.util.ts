@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import jwt from "jsonwebtoken";
 import { jwtConfig } from "../../config/jwt.config";
 import type { ActorType } from "../constants/actors";
@@ -22,9 +23,14 @@ export function generateAccessToken(user: AuthUser): string {
   } as jwt.SignOptions);
 }
 
+/**
+ * A random jwtid makes every refresh token unique, even two issued in the same second,
+ * so a rotated-out token can never match the stored hash again.
+ */
 export function generateRefreshToken(userId: number): string {
   return jwt.sign({ sub: userId }, jwtConfig.refreshSecret, {
     expiresIn: jwtConfig.refreshExpiresIn,
+    jwtid: randomUUID(),
   } as jwt.SignOptions);
 }
 

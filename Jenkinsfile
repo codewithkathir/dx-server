@@ -1,32 +1,28 @@
+
 pipeline {
     agent any
 
-    environment {
-        APP_NAME = "dx-server"
-        APP_DIR  = "/var/www/projects/dx/dx_server"
-        APP_ENV  = "dev"
-        BRANCH   = "develop"
-        REPO     = "https://github.com/codewithkathir/dx-server.git"
-    }
-
     options {
+        timestamps()
         disableConcurrentBuilds()
         timeout(time: 30, unit: 'MINUTES')
+        skipDefaultCheckout(true)
+    }
+
+    environment {
+        APP_NAME = 'dx-server'
+        APP_ENV = 'dev'
+        APP_PORT = '7002'
+        APP_DIR = '/var/www/projects/dx/dx-server'
+        DEPLOY_HELPER = '/usr/local/sbin/dx-deploy-server-dev'
     }
 
     stages {
-
         stage('Checkout') {
             steps {
-                script {
-                    if (fileExists('.git')) {
-                        sh 'git reset --hard'
-                        sh 'git clean -fd'
-                    }
-                }
-
-                git branch: "${BRANCH}",
-                    url: "${REPO}"
+                deleteDir()
+                checkout scm
+                sh 'git log -1 --oneline'
             }
         }
 
@@ -36,93 +32,71 @@ pipeline {
             }
         }
 
-        stage('Type Check') {
+        stage('Lint and Typecheck') {
             steps {
-                sh 'npm run typecheck'
+                sh '''
+                    npm run lint
+                    npm run typecheck
+                '''
             }
         }
 
         stage('Build') {
             steps {
-                sh 'npm run build'
+                sh '''
+                    set -eu
+                    npm run build
+                    test -f dist/server.js
+                '''
+            }
+        }
+
+        stage('Prepare Production Dependencies') {
+            steps {
+                sh 'npm ci --omit=dev'
             }
         }
 
         stage('Deploy') {
             steps {
-                // .env.<APP_ENV> and uploads/ live only on the VPS in APP_DIR;
-                // they are excluded so rsync --delete never removes them.
-                sh """
-                    sudo mkdir -p ${APP_DIR}
-                    sudo chown -R \$(whoami) ${APP_DIR}
-
-                    if [ ! -f ${APP_DIR}/.env.${APP_ENV} ]; then
-                        echo "Missing ${APP_DIR}/.env.${APP_ENV} (copy .env.${APP_ENV}.example and fill it in)"
-                        exit 1
-                    fi
-
-                    rsync -av --delete \
-                    --exclude=node_modules \
-                    --exclude=.git \
-                    --exclude='.env*' \
-                    --exclude=uploads \
-                    --exclude=coverage \
-                    ./ ${APP_DIR}/
-
-                    mkdir -p ${APP_DIR}/uploads
-
-                    cd ${APP_DIR}
-                    # Full install: migrations run through tsx (a devDependency)
-                    npm ci
-                """
+                sh '''
+                    set -eu
+                    sudo -n "$DEPLOY_HELPER"
+                '''
             }
         }
 
-        stage('Migrate Database') {
+        stage('Health Check') {
             steps {
-                sh """
-                    cd ${APP_DIR}
-                    npm run migrate:${APP_ENV}
-                """
-            }
-        }
+                sh '''
+                    set -eu
 
-        stage('Restart Application') {
-            steps {
-                sh """
-                    pm2 delete ${APP_NAME} || true
+                    for i in $(seq 1 15); do
+                        if curl -fsS \
+                            "http://127.0.0.1:${APP_PORT}/api/health"; then
+                            echo
+                            echo "Dev backend health check passed."
+                            exit 0
+                        fi
+                        sleep 2
+                    done
 
-                    cd ${APP_DIR}
-
-                    pm2 start npm \
-                    --name ${APP_NAME} \
-                    -- run start:${APP_ENV}
-
-                    pm2 save
-                """
-            }
-        }
-
-        stage('Verify') {
-            steps {
-                sh """
-                    sleep 5
-                    PORT=\$(grep -E '^PORT=' ${APP_DIR}/.env.${APP_ENV} | cut -d= -f2 | tr -d '[:space:]')
-                    curl -fsS http://127.0.0.1:\${PORT:-5001}/api/health
-                    pm2 status
-                """
+                    echo "Dev backend health check failed."
+                    exit 1
+                '''
             }
         }
     }
 
     post {
         success {
-            echo '✅ DX Server deployed successfully'
+            echo 'DX Server Dev deployment completed successfully.'
         }
-
         failure {
-            echo '❌ Deployment failed'
-            sh "pm2 logs ${APP_NAME} --lines 50 --nostream || true"
+            echo 'DX Server Dev pipeline failed. Check the stage logs.'
+        }
+        always {
+            echo 'DX Server Dev pipeline finished.'
         }
     }
 }

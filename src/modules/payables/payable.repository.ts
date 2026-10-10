@@ -33,13 +33,15 @@ class PayableRepository extends BaseRepository<BillRow> {
       .leftJoin("suppliers as s", "s.id", "b.supplier_id")
       .leftJoin("employees as e", "e.id", "b.employee_id")
       .leftJoin("categories as c", "c.id", "b.category_id")
+      .leftJoin("expenses as x", "x.id", "b.expense_id")
       .whereNull("b.deleted_at")
       .select(
         "b.*",
         "s.company_name as supplier_name",
         "e.emp_name as employee_name",
         "e.employee_code as employee_code",
-        "c.name as category_name"
+        "c.name as category_name",
+        "x.support_file as expense_support_file"
       );
   }
 

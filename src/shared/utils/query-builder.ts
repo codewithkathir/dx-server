@@ -20,10 +20,12 @@ export interface QueryBuilderConfig {
   defaultSort?: string;
 }
 
+/** `table` qualifies the column, which joined queries need (both sides have deleted_at). */
 export function applySoftDelete<T extends Knex.QueryBuilder>(
-  query: T
+  query: T,
+  table?: string
 ): T {
-  return query.whereNull("deleted_at") as T;
+  return query.whereNull(table ? `${table}.deleted_at` : "deleted_at") as T;
 }
 
 export function applyListQuery(
@@ -31,7 +33,7 @@ export function applyListQuery(
   options: ListQueryOptions,
   config: QueryBuilderConfig
 ): Knex.QueryBuilder {
-  let query = applySoftDelete(baseQuery);
+  let query = applySoftDelete(baseQuery, config.alias ?? config.table);
 
   if (options.search && config.searchableFields?.length) {
     const term = `%${options.search}%`;

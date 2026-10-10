@@ -42,3 +42,13 @@ export function isImageFilename(filename: string): boolean {
   const ext = path.extname(filename).toLowerCase();
   return [".jpg", ".jpeg", ".png", ".webp"].includes(ext);
 }
+
+/** Deletes an uploaded file; missing files and unsafe paths are ignored. */
+export async function removeUploadFile(relativePath: string): Promise<void> {
+  const uploadRoot = path.resolve(config.upload.path);
+  const absolutePath = path.resolve(uploadRoot, relativePath);
+  if (relativePath.includes("..") || !absolutePath.startsWith(`${uploadRoot}${path.sep}`)) {
+    return;
+  }
+  await fs.promises.unlink(absolutePath).catch(() => undefined);
+}

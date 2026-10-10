@@ -1,7 +1,7 @@
 import request from "supertest";
 import { createTestApp } from "../helpers/app.helper";
 import { resetDatabase } from "../helpers/db.helper";
-import { authHeader, loginAsAdmin } from "../helpers/auth.helper";
+import { authHeader, loginAsUser } from "../helpers/auth.helper";
 import { createUserPublicInput } from "../mocks/user.factory";
 
 describe("Users API", () => {
@@ -18,7 +18,7 @@ describe("Users API", () => {
     });
 
     it("returns paginated users for admin", async () => {
-      const { accessToken } = await loginAsAdmin(app);
+      const { accessToken } = await loginAsUser(app);
 
       const res = await request(app)
         .get("/api/v1/users")
@@ -36,7 +36,7 @@ describe("Users API", () => {
 
   describe("POST /api/v1/users", () => {
     it("creates a user when admin has permission", async () => {
-      const { accessToken } = await loginAsAdmin(app);
+      const { accessToken } = await loginAsUser(app);
       const input = createUserPublicInput();
 
       const res = await request(app)
@@ -51,7 +51,7 @@ describe("Users API", () => {
 
   describe("GET /api/v1/users/:id", () => {
     it("returns NOT_FOUND for missing user", async () => {
-      const { accessToken } = await loginAsAdmin(app);
+      const { accessToken } = await loginAsUser(app);
 
       const res = await request(app)
         .get("/api/v1/users/99999")
@@ -64,7 +64,7 @@ describe("Users API", () => {
 
   describe("DELETE /api/v1/users/:id", () => {
     it("soft deletes a user", async () => {
-      const { accessToken } = await loginAsAdmin(app);
+      const { accessToken } = await loginAsUser(app);
       const input = createUserPublicInput();
 
       const createRes = await request(app)

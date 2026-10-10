@@ -24,6 +24,8 @@ export async function resetDatabase(): Promise<void> {
 
   await db.raw("SET FOREIGN_KEY_CHECKS = 0");
   await db("refresh_tokens").del();
+  await db("asset_assignments").del();
+  await db("assets").del();
   await db("role_permissions").del();
   await db("employees").del();
   await db("admins").del();

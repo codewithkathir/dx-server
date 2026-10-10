@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authenticateAdmin } from "../../middlewares/admin-auth.middleware";
 import { requireAdminRole } from "../../middlewares/role.middleware";
 import { requirePermission } from "../../middlewares/permission.middleware";
+import { uploadBillAttachment } from "../../middlewares/upload.middleware";
 import { validate } from "../../middlewares/validation.middleware";
 import { Permissions } from "../../shared/constants/permissions";
 import { payableController } from "./payable.controller";
@@ -47,6 +48,28 @@ payableRoutes.put(
   validate(idParamSchema, "params"),
   validate(updateBillSchema, "body"),
   payableController.updateBill
+);
+
+payableRoutes.get(
+  "/:id/attachment",
+  requirePermission(Permissions.PAYABLE_READ),
+  validate(idParamSchema, "params"),
+  payableController.streamAttachment
+);
+
+payableRoutes.post(
+  "/:id/attachment",
+  requirePermission(Permissions.PAYABLE_UPDATE),
+  validate(idParamSchema, "params"),
+  uploadBillAttachment,
+  payableController.uploadAttachment
+);
+
+payableRoutes.delete(
+  "/:id/attachment",
+  requirePermission(Permissions.PAYABLE_UPDATE),
+  validate(idParamSchema, "params"),
+  payableController.removeAttachment
 );
 
 payableRoutes.post(
