@@ -16,7 +16,8 @@ const optionalNullableIdSchema = z.preprocess(
 const expenseFieldsSchema = {
   date: dateSchema,
   amount: z.coerce.number().positive().max(999999999.99),
-  whom: z.coerce.number().int().positive(),
+  /** Ignored: the server always uses the logged-in employee. Kept so older app versions still validate. */
+  whom: z.coerce.number().int().positive().optional(),
   categoryId: z.coerce.number().int().positive(),
   subCategoryId: z.coerce.number().int().positive(),
   subSubCategoryId: optionalNullableIdSchema,

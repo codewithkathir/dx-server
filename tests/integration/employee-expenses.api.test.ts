@@ -63,6 +63,21 @@ describe("Employee Expenses API", () => {
 
     expect(createRes.body.data.employeeStatus).toBe("pending");
     expect(createRes.body.data.employeeId).toBeDefined();
+    // "Whom" is always the submitting employee, whatever the client sends.
+    expect(createRes.body.data.whom).toBe(createRes.body.data.employeeId);
+
+    const noWhomRes = await request(app)
+      .post("/api/v1/employee/expenses")
+      .set(authHeader(accessToken))
+      .send({
+        date: "2026-05-11",
+        amount: 40,
+        categoryId: ids.categoryId,
+        subCategoryId: ids.subCategoryId,
+        paymentMethodId: ids.paymentMethodId,
+      })
+      .expect(201);
+    expect(noWhomRes.body.data.whom).toBe(createRes.body.data.employeeId);
 
     const listRes = await request(app)
       .get("/api/v1/employee/expenses")

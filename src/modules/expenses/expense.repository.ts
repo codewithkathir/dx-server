@@ -109,7 +109,7 @@ class ExpenseRepository extends BaseRepository<ExpenseRow> {
       employee_id: employeeId,
       date: input.date,
       amount: input.amount,
-      whom: input.whom,
+      whom: input.whom ?? employeeId,
       category_id: input.categoryId,
       sub_category_id: input.subCategoryId,
       sub_sub_category_id: input.subSubCategoryId ?? null,

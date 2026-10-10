@@ -10,7 +10,6 @@ import { categoryRepository } from "../categories/category.repository";
 import { paymentMethodRepository } from "../payment-methods/payment-method.repository";
 import { subCategoryRepository } from "../sub-categories/sub-category.repository";
 import { subSubCategoryRepository } from "../sub-sub-categories/sub-sub-category.repository";
-import { dropdownRepository } from "../dropdowns/dropdown.repository";
 import { expenseRepository } from "./expense.repository";
 import { payableService } from "../payables/payable.service";
 import type {
@@ -64,7 +63,6 @@ class ExpenseService {
     subCategoryId: number;
     subSubCategoryId?: number | null;
     paymentMethodId: number;
-    whom: number;
   }): Promise<void> {
     const category = await categoryRepository.findById(input.categoryId);
     if (!category || category.status !== "active") {
@@ -107,11 +105,6 @@ class ExpenseService {
         ErrorCodes.NOT_FOUND,
         404
       );
-    }
-
-    const whomEmployee = await dropdownRepository.findWhomById(input.whom);
-    if (!whomEmployee) {
-      throw new ApiError("Whom employee not found", ErrorCodes.NOT_FOUND, 404);
     }
   }
 
@@ -170,7 +163,8 @@ class ExpenseService {
     input: CreateExpenseInput
   ): Promise<ExpensePublic> {
     await this.assertCatalogReferences(input);
-    const id = await expenseRepository.create(employeeId, input);
+    // A claim is always for the employee submitting it; any "whom" sent by the client is ignored.
+    const id = await expenseRepository.create(employeeId, { ...input, whom: employeeId });
     return this.getMyExpenseById(employeeId, id);
   }
 
@@ -196,12 +190,11 @@ class ExpenseService {
           ? input.subSubCategoryId
           : existing.sub_sub_category_id,
       paymentMethodId: input.paymentMethodId ?? existing.payment_method_id,
-      whom: input.whom ?? existing.whom,
     };
 
     await this.assertCatalogReferences(merged);
 
-    const updated = await expenseRepository.updateByIdForEmployee(expenseId, employeeId, input);
+    const updated = await expenseRepository.updateByIdForEmployee(expenseId, employeeId, { ...input, whom: employeeId });
     if (updated === 0) await this.assertStillEditable(employeeId, expenseId);
     return this.getMyExpenseById(employeeId, expenseId);
   }

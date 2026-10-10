@@ -88,7 +88,7 @@ export interface ExpenseListQuery extends ListQueryOptions {
 export interface CreateExpenseInput {
   date: string;
   amount: number;
-  whom: number;
+  whom?: number;
   categoryId: number;
   subCategoryId: number;
   subSubCategoryId?: number | null;
