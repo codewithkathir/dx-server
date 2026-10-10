@@ -1,9 +1,12 @@
 import type { CreateEmployeeBody } from "../../src/modules/employees/employee.validation";
 
+// Date.now() alone repeats within the same millisecond (e.g. bulk create), so add a counter.
+let sequence = 0;
+
 export function createEmployeeInput(
   overrides: Partial<CreateEmployeeBody> = {}
 ): CreateEmployeeBody {
-  const suffix = Date.now();
+  const suffix = `${Date.now()}${++sequence}`;
   return {
     empName: "John Doe",
     companyName: "Acme Corp",

@@ -44,6 +44,19 @@ export function errorHandler(
     return;
   }
 
+  // Body-parser errors are the client's fault (bad or oversized JSON), not a server crash.
+  const bodyErrorType = (err as { type?: string }).type;
+  if (bodyErrorType === "entity.parse.failed" || bodyErrorType === "entity.too.large") {
+    const tooLarge = bodyErrorType === "entity.too.large";
+    res.status(tooLarge ? 413 : 400).json({
+      success: false,
+      message: tooLarge ? "Request body is too large" : "Request body is not valid JSON",
+      errorCode: ErrorCodes.VALIDATION_ERROR,
+      errors: [],
+    });
+    return;
+  }
+
   const isDbError =
     "code" in err &&
     typeof (err as { code?: string }).code === "string" &&

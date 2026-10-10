@@ -81,13 +81,22 @@ describe("Admin Employee Expenses API", () => {
 
     expect(detailRes.body.data.id).toBe(expenseId);
 
-    const statusRes = await request(app)
+    // "Paid" can't be set by hand: it comes only from payments on the reimbursement bill.
+    await request(app)
       .put(`/api/v1/admin/employee-expenses/${expenseId}/status`)
       .set(authHeader(adminToken))
       .send({ adminStatus: "paid" })
+      .expect(400);
+
+    const approveRes = await request(app)
+      .post(`/api/v1/admin/employee-expenses/${expenseId}/approve`)
+      .set(authHeader(adminToken))
+      .send({ note: "Approved in test" })
       .expect(200);
 
-    expect(statusRes.body.data.adminStatus).toBe("paid");
+    expect(approveRes.body.data.employeeStatus).toBe("approved");
+    expect(approveRes.body.data.reviewNote).toBe("Approved in test");
+    expect(approveRes.body.data.reimbursement?.billNo).toMatch(/^EXP-/);
 
     await request(app)
       .delete(`/api/v1/admin/employee-expenses/${expenseId}`)
