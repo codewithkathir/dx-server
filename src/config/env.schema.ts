@@ -55,9 +55,18 @@ const baseEnvSchema = z.object({
     .or(z.literal("").transform(() => undefined)),
   COMPANY_BANK_DETAILS: z.string().optional(),
 
-  // Email via SendGrid. Without SENDGRID_API_KEY, emails are only written to the log.
+  // Email via SMTP (e.g. Zoho Mail) when SMTP_HOST is set, otherwise SendGrid.
+  // With neither configured, emails are only written to the log.
+  SMTP_HOST: optionalString,
+  /** 465 = SSL (Zoho default), 587 = STARTTLS. */
+  SMTP_PORT: z.coerce.number().int().positive().default(465),
+  SMTP_USER: optionalString,
+  SMTP_PASS: optionalString,
   SENDGRID_API_KEY: optionalString,
-  /** Verified sender in SendGrid (Single Sender or a domain-authenticated address). */
+  /**
+   * Sender address. SMTP providers like Zoho only accept the signed-in mailbox (or its aliases);
+   * defaults to SMTP_USER. For SendGrid it must be a verified sender.
+   */
   MAIL_FROM_EMAIL: optionalString,
   MAIL_FROM_NAME: optionalString,
   MAIL_REPLY_TO: optionalString,
@@ -67,15 +76,30 @@ const baseEnvSchema = z.object({
   AUTH_RATE_LIMIT_MAX: z.coerce.number().default(5),
 });
 
-/** A SendGrid key needs a valid sender, otherwise every send would be rejected. */
+/** A configured mail provider needs its credentials and a valid sender, otherwise every send would fail. */
 export const envSchema = baseEnvSchema.superRefine((env, ctx) => {
-  if (!env.SENDGRID_API_KEY) return;
-  if (!env.MAIL_FROM_EMAIL || !emailPattern.safeParse(env.MAIL_FROM_EMAIL).success) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["MAIL_FROM_EMAIL"],
-      message: "MAIL_FROM_EMAIL must be a valid email when SENDGRID_API_KEY is set",
-    });
+  if (env.SMTP_HOST) {
+    for (const key of ["SMTP_USER", "SMTP_PASS"] as const) {
+      if (!env[key]) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: [key], message: `${key} is required when SMTP_HOST is set` });
+      }
+    }
+    const from = env.MAIL_FROM_EMAIL ?? env.SMTP_USER;
+    if (from && !emailPattern.safeParse(from).success) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["MAIL_FROM_EMAIL"],
+        message: "MAIL_FROM_EMAIL (or SMTP_USER) must be a valid email when SMTP_HOST is set",
+      });
+    }
+  } else if (env.SENDGRID_API_KEY) {
+    if (!env.MAIL_FROM_EMAIL || !emailPattern.safeParse(env.MAIL_FROM_EMAIL).success) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["MAIL_FROM_EMAIL"],
+        message: "MAIL_FROM_EMAIL must be a valid email when SENDGRID_API_KEY is set",
+      });
+    }
   }
   if (env.MAIL_REPLY_TO && !emailPattern.safeParse(env.MAIL_REPLY_TO).success) {
     ctx.addIssue({

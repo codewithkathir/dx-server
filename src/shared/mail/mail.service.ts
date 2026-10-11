@@ -1,3 +1,4 @@
+import nodemailer, { type Transporter } from "nodemailer";
 import { config } from "../../config";
 import { logger } from "../logger/logger";
 import type { MailMessage } from "./mail.types";
@@ -12,16 +13,58 @@ function maskEmail(email: string): string {
 }
 
 class MailService {
+  private transporter: Transporter | null = null;
+
+  /** One pooled SMTP connection, created on first use. Port 465 is SSL; others upgrade with STARTTLS. */
+  private smtp(): Transporter {
+    if (!this.transporter) {
+      const { host, port, user, pass } = config.mail.smtp;
+      this.transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure: port === 465,
+        requireTLS: port !== 465,
+        auth: { user, pass },
+        pool: true,
+        connectionTimeout: SEND_TIMEOUT_MS,
+        greetingTimeout: SEND_TIMEOUT_MS,
+        socketTimeout: SEND_TIMEOUT_MS * 3,
+      });
+    }
+    return this.transporter;
+  }
+
+  /** Checks the SMTP login without sending anything (used by scripts/test-mail.ts). */
+  async verify(): Promise<void> {
+    if (config.mail.provider !== "smtp") throw new Error("SMTP is not configured (SMTP_HOST is empty)");
+    await this.smtp().verify();
+  }
+
   /**
-   * Sends through SendGrid's v3 API. Throws on failure, so use `sendInBackground`
-   * from request handlers. Without SENDGRID_API_KEY the message is only logged.
+   * Sends through SMTP (e.g. Zoho Mail) when SMTP_HOST is set, otherwise SendGrid's v3 API.
+   * Throws on failure, so use `sendInBackground` from request handlers.
+   * With no provider configured the message is only logged.
    */
   async send(message: MailMessage): Promise<void> {
     const to = maskEmail(message.to.email);
 
     if (!config.mail.enabled) {
-      logger.info({ tag: message.tag, to, subject: message.subject }, "Email not sent (mail disabled: no SENDGRID_API_KEY)");
+      logger.info({ tag: message.tag, to, subject: message.subject }, "Email not sent (mail disabled: no SMTP_HOST or SENDGRID_API_KEY)");
       if (config.isDevelopment) logger.debug({ tag: message.tag, text: message.text }, "Email body (dev)");
+      return;
+    }
+
+    if (config.mail.provider === "smtp") {
+      const info = await this.smtp().sendMail({
+        from: { name: config.mail.fromName ?? "", address: config.mail.fromEmail! },
+        to: message.to.name ? { name: message.to.name, address: message.to.email } : message.to.email,
+        ...(config.mail.replyTo ? { replyTo: config.mail.replyTo } : {}),
+        subject: message.subject,
+        text: message.text,
+        html: message.html,
+        headers: { "X-DX-Tag": message.tag },
+      });
+      logger.info({ tag: message.tag, to, messageId: info.messageId }, "Email sent");
       return;
     }
 

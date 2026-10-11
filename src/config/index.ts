@@ -70,10 +70,17 @@ export const config = {
   },
 
   mail: {
-    /** Emails are sent only when a SendGrid key is configured; otherwise they are logged. */
-    enabled: Boolean(env.SENDGRID_API_KEY),
+    /** SMTP (e.g. Zoho) wins over SendGrid; with neither, emails are only logged. */
+    provider: env.SMTP_HOST ? ("smtp" as const) : env.SENDGRID_API_KEY ? ("sendgrid" as const) : null,
+    enabled: Boolean(env.SMTP_HOST || env.SENDGRID_API_KEY),
+    smtp: {
+      host: env.SMTP_HOST,
+      port: env.SMTP_PORT,
+      user: env.SMTP_USER,
+      pass: env.SMTP_PASS,
+    },
     sendgridApiKey: env.SENDGRID_API_KEY,
-    fromEmail: env.MAIL_FROM_EMAIL,
+    fromEmail: env.MAIL_FROM_EMAIL ?? (env.SMTP_HOST ? env.SMTP_USER : undefined),
     fromName: env.MAIL_FROM_NAME ?? env.COMPANY_NAME,
     replyTo: env.MAIL_REPLY_TO,
   },
