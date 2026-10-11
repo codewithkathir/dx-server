@@ -480,3 +480,56 @@ export function uploadPartyPhoto(kind: PartyPhotoKind) {
 export function getPartyPhotoPath(kind: PartyPhotoKind, file: Express.Multer.File): string {
   return path.posix.join("images", kind, file.filename);
 }
+
+/** The invoice PDF renderer (pdfkit) embeds PNG and JPEG only. */
+const BRANDING_MIME_TYPES = new Set(["image/jpeg", "image/png"]);
+
+const brandingUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      const dir = path.join(config.upload.path, "images", "branding");
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      cb(null, dir);
+    },
+    filename: (_req, file, cb) => {
+      const random = Math.random().toString(36).slice(2, 10);
+      cb(null, `branding_${Date.now()}_${random}${extensionFor(file.mimetype)}`);
+    },
+  }),
+  limits: { fileSize: PROFILE_MAX_BYTES, files: 1 },
+  fileFilter: (_req, file, cb) => {
+    if (!BRANDING_MIME_TYPES.has(file.mimetype)) {
+      cb(new ApiError("Use a PNG or JPEG image", ErrorCodes.VALIDATION_ERROR, 400) as unknown as Error);
+      return;
+    }
+    cb(null, true);
+  },
+}).single("image");
+
+/** Required single `image` (PNG/JPEG, up to 2 MB) for the invoice logo, signature or stamp. */
+export function uploadBrandingImage(req: Request, res: Response, next: NextFunction): void {
+  withVerifiedFile(
+    brandingUpload,
+    req,
+    res,
+    next,
+    () => {
+      if (!req.file) {
+        next(
+          new ApiError("Choose an image to upload", ErrorCodes.VALIDATION_ERROR, 400, [
+            { field: "image", message: "Choose an image to upload" },
+          ])
+        );
+        return;
+      }
+      next();
+    },
+    PROFILE_MAX_BYTES
+  );
+}
+
+export function getBrandingImagePath(file: Express.Multer.File): string {
+  return path.posix.join("images", "branding", file.filename);
+}

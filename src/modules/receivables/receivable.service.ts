@@ -23,6 +23,7 @@ import {
 import { buildPaginationMeta } from "../../shared/utils/pagination.util";
 import { customerService } from "../customers/customer.service";
 import { paymentMethodRepository } from "../payment-methods/payment-method.repository";
+import { invoiceBrandingService } from "../invoice-branding/invoice-branding.service";
 import { renderInvoicePdf } from "./invoice-pdf";
 import { receivableRepository } from "./receivable.repository";
 import type {
@@ -314,7 +315,7 @@ class ReceivableService {
     if (!row) throw notFound("Invoice not found");
     return {
       filename: `${row.invoice_no}.pdf`,
-      document: renderInvoicePdf(row, config.company),
+      document: renderInvoicePdf(row, config.company, await invoiceBrandingService.getAssets()),
     };
   }
 }
