@@ -19,6 +19,7 @@ import type {
   UpdateEmployeeInput,
 } from "./employee.types";
 import type { CreateEmployeeBody } from "./employee.validation";
+import { assertPhonesMatchCountry } from "../../shared/utils/phone.util";
 
 class EmployeeService {
   private formatDate(value: Date | string): string {
@@ -110,6 +111,11 @@ class EmployeeService {
       );
     }
 
+    assertPhonesMatchCountry(input.country, {
+      phoneNo: { label: "Phone number", value: input.phoneNo },
+      whatsappNo: { label: "WhatsApp number", value: input.whatsappNo },
+    });
+
     const passwordHash = await hashPassword(input.password);
     const employeeId = await employeeRepository.create(
       input,
@@ -145,6 +151,11 @@ class EmployeeService {
         throw new ApiError("Email already in use", ErrorCodes.CONFLICT, 409);
       }
     }
+
+    assertPhonesMatchCountry(input.country ?? existing.country, {
+      phoneNo: { label: "Phone number", value: input.phoneNo },
+      whatsappNo: { label: "WhatsApp number", value: input.whatsappNo },
+    });
 
     const updatePayload: UpdateEmployeeInput & { password_hash?: string } = {
       ...input,
@@ -235,6 +246,11 @@ class EmployeeService {
             });
             continue;
           }
+
+          assertPhonesMatchCountry(input.country, {
+            phoneNo: { label: "Phone number", value: input.phoneNo },
+            whatsappNo: { label: "WhatsApp number", value: input.whatsappNo },
+          });
 
           const passwordHash = await hashPassword(input.password);
           const employeeId = await employeeRepository.create(

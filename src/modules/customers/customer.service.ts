@@ -15,6 +15,7 @@ import type {
   CustomerRow,
   UpdateCustomerInput,
 } from "./customer.types";
+import { assertPhonesMatchCountry } from "../../shared/utils/phone.util";
 
 class CustomerService {
   toPublic(row: CustomerRow): CustomerPublic {
@@ -82,6 +83,11 @@ class CustomerService {
     createdBy?: number
   ): Promise<CustomerPublic> {
     await this.assertNameAvailable(input.companyName);
+    assertPhonesMatchCountry(input.country, {
+      phone1: { label: "Phone number", value: input.phone1 },
+      phone2: { label: "Second phone number", value: input.phone2 },
+      whatsappNo: { label: "WhatsApp number", value: input.whatsappNo },
+    });
     const id = await customerRepository.create(input, createdBy);
     return this.getCustomerById(id);
   }
@@ -91,8 +97,13 @@ class CustomerService {
     input: UpdateCustomerInput,
     updatedBy?: number
   ): Promise<CustomerPublic> {
-    await this.assertCustomerExists(id);
+    const existing = await this.assertCustomerExists(id);
     if (input.companyName) await this.assertNameAvailable(input.companyName, id);
+    assertPhonesMatchCountry(input.country === undefined ? existing.country : input.country, {
+      phone1: { label: "Phone number", value: input.phone1 },
+      phone2: { label: "Second phone number", value: input.phone2 },
+      whatsappNo: { label: "WhatsApp number", value: input.whatsappNo },
+    });
     await customerRepository.updateById(id, input, updatedBy);
     return this.getCustomerById(id);
   }
