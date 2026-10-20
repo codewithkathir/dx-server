@@ -74,8 +74,8 @@ class AdminExpenseController {
 
   approveExpense = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.validated!.params as IdParam;
-    const { note, reimburseInFull } = req.validated!.body as ApproveExpenseBody;
-    const expense = await adminExpenseService.approveExpense(id, req.user?.id, note, reimburseInFull);
+    const { note } = req.validated!.body as ApproveExpenseBody;
+    const expense = await adminExpenseService.approveExpense(id, req.user?.id, note);
     const message =
       expense.advanceAmount > 0 && !expense.reimbursableAmount
         ? "Expense approved and settled from the employee's advance"

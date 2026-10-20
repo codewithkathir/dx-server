@@ -77,8 +77,8 @@ export interface ExpenseForSettlement {
 
 class EmployeeAccountService {
   /** Split a claim: the advance covers what it can, the rest is reimbursed. */
-  private split(amountFils: number, balanceFils: number, useAdvance: boolean): { fromAdvance: number; reimbursable: number } {
-    const fromAdvance = useAdvance ? Math.min(amountFils, Math.max(balanceFils, 0)) : 0;
+  private split(amountFils: number, balanceFils: number): { fromAdvance: number; reimbursable: number } {
+    const fromAdvance = Math.min(amountFils, Math.max(balanceFils, 0));
     return { fromAdvance, reimbursable: amountFils - fromAdvance };
   }
 
@@ -87,6 +87,12 @@ class EmployeeAccountService {
   async listAccounts(query: AccountListQueryParams) {
     const { data, total } = await employeeAccountRepository.findAccounts(query);
     return { data: data.map(toAccount), meta: buildPaginationMeta(query.page, query.limit, total) };
+  }
+
+  /** Advance balance per employee id (0 when they never had one). */
+  async balancesFor(employeeIds: number[]): Promise<Map<number, number>> {
+    const rows = await employeeAccountRepository.balancesFor(employeeIds);
+    return new Map(employeeIds.map((id) => [id, money(rows.get(id) ?? 0)]));
   }
 
   async getAccount(employeeId: number): Promise<EmployeeAccountPublic> {
@@ -204,7 +210,7 @@ class EmployeeAccountService {
   async previewSettlement(expense: ExpenseForSettlement): Promise<ApprovalPreview> {
     const amount = toFils(Number(expense.amount).toFixed(2));
     const balance = toFils(await employeeAccountRepository.balance(expense.employee_id));
-    const { fromAdvance, reimbursable } = this.split(amount, balance, true);
+    const { fromAdvance, reimbursable } = this.split(amount, balance);
     return {
       expenseId: expense.id,
       amount: fromFils(amount),
@@ -222,7 +228,6 @@ class EmployeeAccountService {
   async settleExpense(
     trx: Knex.Transaction,
     expense: ExpenseForSettlement,
-    useAdvance: boolean,
     approvedBy?: number
   ): Promise<ExpenseSettlement> {
     await employeeAccountRepository.lockEmployee(trx, expense.employee_id);
@@ -231,7 +236,7 @@ class EmployeeAccountService {
     }
     const amount = toFils(Number(expense.amount).toFixed(2));
     const balance = toFils(await employeeAccountRepository.balance(expense.employee_id, trx));
-    const { fromAdvance, reimbursable } = this.split(amount, balance, useAdvance);
+    const { fromAdvance, reimbursable } = this.split(amount, balance);
     if (fromAdvance > 0) {
       await employeeAccountRepository.insertEntry(trx, {
         employee_id: expense.employee_id,

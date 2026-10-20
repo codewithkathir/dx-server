@@ -33,6 +33,17 @@ class EmployeeAccountRepository extends BaseRepository<AccountEntryRow> {
     return String(row?.balance ?? "0");
   }
 
+  /** Balances for a page of employees (employee list). Employees with no entries are absent. */
+  async balancesFor(employeeIds: number[]): Promise<Map<number, string>> {
+    if (employeeIds.length === 0) return new Map();
+    const rows = (await this.db("employee_account_entries")
+      .whereIn("employee_id", employeeIds)
+      .whereNull("voided_at")
+      .groupBy("employee_id")
+      .select("employee_id", this.db.raw("SUM(amount) AS balance"))) as Array<{ employee_id: number; balance: string | number }>;
+    return new Map(rows.map((r) => [r.employee_id, String(r.balance)]));
+  }
+
   async insertEntry(db: Db, row: Omit<AccountEntryRow, "id" | "created_at" | "voided_at" | "voided_by" | "void_reason">): Promise<number> {
     const [id] = await db("employee_account_entries").insert(row);
     return id as number;

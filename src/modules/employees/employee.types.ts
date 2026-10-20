@@ -33,6 +33,8 @@ export interface EmployeeRow extends BaseEntity {
 
 export interface EmployeePublic {
   id: number;
+  /** Advance money the employee holds (list responses only). */
+  advanceBalance?: number;
   empName: string;
   companyName: string;
   dob: string;

@@ -32,15 +32,9 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema.alterTable("expenses", (table) => {
     /** Part of an approved claim covered by the employee's advance. */
     table.decimal("advance_amount", 12, 2).notNullable().defaultTo(0);
-    /** Part reimbursed through Payables; NULL until approved. */
+    /** Part reimbursed through Payables; NULL until approved (and on claims approved before advances). */
     table.decimal("reimbursable_amount", 12, 2).nullable();
   });
-
-  // Claims approved before this feature were reimbursed in full.
-  await knex("expenses")
-    .where("employee_status", "approved")
-    .orWhere("admin_status", "paid")
-    .update({ reimbursable_amount: knex.ref("amount") });
 }
 
 export async function down(knex: Knex): Promise<void> {
