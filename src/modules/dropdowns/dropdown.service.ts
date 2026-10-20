@@ -1,5 +1,7 @@
 import type {
+  CategoryDropdownOption,
   DropdownOption,
+  VehicleDropdownOption,
   SubCategoryDropdownQuery,
   SubSubCategoryDropdownQuery,
   WhomDropdownOption,
@@ -7,8 +9,12 @@ import type {
 import { dropdownRepository } from "./dropdown.repository";
 
 class DropdownService {
-  async listCategories(): Promise<DropdownOption[]> {
+  async listCategories(): Promise<CategoryDropdownOption[]> {
     return dropdownRepository.findActiveCategories();
+  }
+
+  async listVehicles(employeeId?: number): Promise<VehicleDropdownOption[]> {
+    return dropdownRepository.findVehicles(employeeId);
   }
 
   async listSubCategories(

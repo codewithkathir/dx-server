@@ -53,6 +53,9 @@ export const Permissions = {
   ASSET_UPDATE: "asset.update",
   ASSET_DELETE: "asset.delete",
   ASSET_ASSIGN: "asset.assign",
+  ASSET_SERVICE_MANAGE: "asset.service.manage",
+  EMPLOYEE_ACCOUNT_READ: "employee_account.read",
+  EMPLOYEE_ACCOUNT_MANAGE: "employee_account.manage",
 } as const;
 
 /** Finance permissions added after the initial release (see the add-finance-permissions migration). */
@@ -85,6 +88,15 @@ export const AssetPermissions = [
   Permissions.ASSET_UPDATE,
   Permissions.ASSET_DELETE,
   Permissions.ASSET_ASSIGN,
+] as const;
+
+/** Maintenance log, odometer readings and service types (see the add-asset-maintenance-permissions migration). */
+export const AssetMaintenancePermissions = [Permissions.ASSET_SERVICE_MANAGE] as const;
+
+/** Employee advance balances (see the add-employee-account-permissions migration). */
+export const EmployeeAccountPermissions = [
+  Permissions.EMPLOYEE_ACCOUNT_READ,
+  Permissions.EMPLOYEE_ACCOUNT_MANAGE,
 ] as const;
 
 export type PermissionName = (typeof Permissions)[keyof typeof Permissions];
@@ -123,6 +135,8 @@ export const DefaultRolePermissions: Record<string, PermissionName[]> = {
     Permissions.EMPLOYEE_EXPENSE_DELETE,
     ...FinancePermissions,
     ...AssetPermissions,
+    ...AssetMaintenancePermissions,
+    ...EmployeeAccountPermissions,
   ],
   EDITOR: [Permissions.USER_READ],
   USER: [],

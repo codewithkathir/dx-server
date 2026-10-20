@@ -10,6 +10,7 @@ import { DocumentSequences, nextDocumentNumber } from "../../shared/utils/docume
 import { getMimeTypeFromFilename, removeUploadFile, resolveUploadAbsolutePath } from "../../shared/utils/file.util";
 import { isFutureDate, todayIso } from "../../shared/utils/money.util";
 import { buildPaginationMeta } from "../../shared/utils/pagination.util";
+import { assetMaintenanceService } from "../asset-maintenance/asset-maintenance.service";
 import { employeeRepository } from "../employees/employee.repository";
 import { assetRepository } from "./asset.repository";
 import type {
@@ -102,6 +103,7 @@ class AssetService {
           : null,
       coverImageId: row.cover_image_id ?? null,
       imageCount: Number(row.image_count ?? 0),
+      odometerKm: row.odometer_km ?? null,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -123,10 +125,16 @@ class AssetService {
       conditionIn: row.condition_in,
       returnNotes: row.return_notes,
       returnedByName: row.returned_by_name,
+      odometerOut: row.odometer_out,
+      odometerIn: row.odometer_in,
     };
   }
 
-  private toEmployeeAsset(row: EmployeeAssignmentRow, images: AssetImagePublic[] = []): EmployeeAssetPublic {
+  private toEmployeeAsset(
+    row: EmployeeAssignmentRow,
+    images: AssetImagePublic[] = [],
+    odometer: EmployeeAssetPublic["odometer"] = null
+  ): EmployeeAssetPublic {
     return {
       assignmentId: row.id,
       assetId: row.asset_id,
@@ -146,6 +154,7 @@ class AssetService {
       conditionIn: row.condition_in,
       returnNotes: row.return_notes,
       images,
+      odometer,
     };
   }
 
@@ -171,8 +180,17 @@ class AssetService {
   async getById(id: number): Promise<AssetDetail> {
     const row = await assetRepository.findListRowById(id);
     if (!row) throw notFound("Asset not found");
-    const [history, images] = await Promise.all([assetRepository.history(id), assetRepository.listImages([id])]);
-    return { ...this.toPublic(row), history: history.map((h) => this.toAssignment(h)), images: images.map(toImage) };
+    const [history, images, odometer] = await Promise.all([
+      assetRepository.history(id),
+      assetRepository.listImages([id]),
+      assetMaintenanceService.latestOdometer(id),
+    ]);
+    return {
+      ...this.toPublic(row),
+      history: history.map((h) => this.toAssignment(h)),
+      images: images.map(toImage),
+      odometer,
+    };
   }
 
   private async assertUnique(assetNo: string | undefined, serialNo: string | null | undefined, exceptId?: number) {
@@ -256,7 +274,7 @@ class AssetService {
       if (locked.status !== "available") throw conflict(STATUS_BLOCKS_ASSIGN[locked.status]);
       if (await assetRepository.findOpenAssignment(id, trx)) throw conflict(STATUS_BLOCKS_ASSIGN.assigned);
       const condition = input.condition ?? locked.condition;
-      await assetRepository.insertAssignment(trx, {
+      const assignmentId = await assetRepository.insertAssignment(trx, {
         asset_id: id,
         employee_id: input.employeeId,
         assigned_date: input.assignedDate,
@@ -264,7 +282,19 @@ class AssetService {
         condition_out: condition,
         notes: input.notes ?? null,
         assigned_by: assignedBy ?? null,
+        odometer_out: input.odometerKm ?? null,
       });
+      if (input.odometerKm !== undefined) {
+        await assetMaintenanceService.recordOdometer(trx, {
+          assetId: id,
+          readingKm: input.odometerKm,
+          readingDate: input.assignedDate,
+          source: "assign",
+          assignmentId,
+          employeeId: input.employeeId,
+          createdBy: assignedBy ?? null,
+        });
+      }
       await assetRepository.updateAsset(trx, id, { status: "assigned", condition, updated_by: assignedBy ?? null });
       return { ...locked, condition };
     });
@@ -303,7 +333,19 @@ class AssetService {
         condition_in: input.condition,
         return_notes: input.notes ?? null,
         returned_by: returnedBy ?? null,
+        odometer_in: input.odometerKm ?? null,
       });
+      if (input.odometerKm !== undefined) {
+        await assetMaintenanceService.recordOdometer(trx, {
+          assetId: id,
+          readingKm: input.odometerKm,
+          readingDate: input.returnedDate,
+          source: "return",
+          assignmentId: open.id,
+          employeeId: open.employee_id,
+          createdBy: returnedBy ?? null,
+        });
+      }
       await assetRepository.updateAsset(trx, id, {
         status: input.nextStatus,
         condition: input.condition,
@@ -382,7 +424,17 @@ class AssetService {
     const images = await assetRepository.listImages([...new Set(assignments.map((a) => a.asset_id))]);
     const byAsset = new Map<number, AssetImagePublic[]>();
     for (const image of images) byAsset.set(image.asset_id, [...(byAsset.get(image.asset_id) ?? []), toImage(image)]);
-    const rows = assignments.map((row) => this.toEmployeeAsset(row, byAsset.get(row.asset_id) ?? []));
+    // Only vehicles the employee still drives show the km; there are at most a few.
+    const odometers = new Map(
+      await Promise.all(
+        assignments
+          .filter((a) => a.category === "vehicle" && !a.returned_date)
+          .map(async (a) => [a.asset_id, await assetMaintenanceService.latestOdometer(a.asset_id)] as const)
+      )
+    );
+    const rows = assignments.map((row) =>
+      this.toEmployeeAsset(row, byAsset.get(row.asset_id) ?? [], odometers.get(row.asset_id) ?? null)
+    );
     return { current: rows.filter((r) => !r.returnedDate), past: rows.filter((r) => r.returnedDate) };
   }
 

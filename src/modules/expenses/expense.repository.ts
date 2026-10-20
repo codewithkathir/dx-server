@@ -116,6 +116,8 @@ class ExpenseRepository extends BaseRepository<ExpenseRow> {
       description: input.description ?? null,
       payment_method_id: input.paymentMethodId,
       support_file: input.supportFile ?? null,
+      asset_id: input.assetId ?? null,
+      odometer_km: input.odometerKm ?? null,
       employee_status: DEFAULT_EMPLOYEE_EXPENSE_STATUS,
       admin_status: DEFAULT_ADMIN_EXPENSE_STATUS,
       created_at: this.db.fn.now(),
@@ -130,6 +132,9 @@ class ExpenseRepository extends BaseRepository<ExpenseRow> {
   ): Knex.QueryBuilder {
     if (options.employeeId) {
       query = query.where("employee_id", options.employeeId);
+    }
+    if (options.assetId) {
+      query = query.where("asset_id", options.assetId);
     }
     if (options.adminStatus) {
       query = query.where("admin_status", options.adminStatus);
@@ -267,11 +272,23 @@ class ExpenseRepository extends BaseRepository<ExpenseRow> {
       review_note?: string | null;
       reviewed_at?: Knex.Raw;
       reviewed_by?: number | null;
+      advance_amount?: string;
+      reimbursable_amount?: string | null;
     }
   ): Promise<void> {
     await trx("expenses")
       .where({ id })
       .update({ ...statuses, updated_at: this.db.fn.now() });
+  }
+
+  async setVehicle(
+    trx: Knex.Transaction,
+    id: number,
+    vehicle: { asset_id: number | null; odometer_km: number | null }
+  ): Promise<void> {
+    await trx("expenses")
+      .where({ id })
+      .update({ ...vehicle, updated_at: this.db.fn.now() });
   }
 
   async softDeleteById(id: number, trx?: Knex.Transaction): Promise<number> {
@@ -304,6 +321,8 @@ class ExpenseRepository extends BaseRepository<ExpenseRow> {
       data.payment_method_id = input.paymentMethodId;
     }
     if (input.supportFile !== undefined) data.support_file = input.supportFile;
+    if (input.assetId !== undefined) data.asset_id = input.assetId;
+    if (input.odometerKm !== undefined) data.odometer_km = input.odometerKm;
 
     // Only expenses still awaiting approval can change (approval creates a bill).
     return this.applyEmployeeScope(this.baseQuery(), employeeId)

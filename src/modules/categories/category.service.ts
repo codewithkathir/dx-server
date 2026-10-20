@@ -17,6 +17,7 @@ class CategoryService {
       name: row.name,
       description: row.description,
       status: row.status,
+      isVehicleExpense: Boolean(row.is_vehicle_expense),
       ...(row.sub_category_count !== undefined && {
         subCategoryCount: Number(row.sub_category_count),
       }),

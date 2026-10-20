@@ -11,6 +11,7 @@ export const createCategorySchema = z
     name: z.string().min(1).max(200).trim(),
     description: z.string().max(2000).trim().optional().nullable(),
     status: z.enum(CatalogStatuses).optional(),
+    isVehicleExpense: z.boolean().optional(),
   })
   .strict();
 
@@ -19,6 +20,7 @@ export const updateCategorySchema = z
     name: z.string().min(1).max(200).trim().optional(),
     description: z.union([z.string().max(2000).trim(), z.null()]).optional(),
     status: z.enum(CatalogStatuses).optional(),
+    isVehicleExpense: z.boolean().optional(),
   })
   .strict()
   .refine((data) => Object.keys(data).length > 0, {

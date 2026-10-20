@@ -61,6 +61,7 @@ class SubCategoryRepository extends BaseRepository<SubCategoryRow> {
       name: input.name,
       description: input.description ?? null,
       status: input.status ?? "active",
+      service_type_id: input.serviceTypeId ?? null,
       created_by: createdBy ?? null,
       updated_by: createdBy ?? null,
       created_at: this.db.fn.now(),
@@ -79,6 +80,7 @@ class SubCategoryRepository extends BaseRepository<SubCategoryRow> {
     if (input.name !== undefined) data.name = input.name;
     if (input.description !== undefined) data.description = input.description;
     if (input.status !== undefined) data.status = input.status;
+    if (input.serviceTypeId !== undefined) data.service_type_id = input.serviceTypeId;
     if (updatedBy !== undefined) data.updated_by = updatedBy;
 
     return this.baseQuery().where({ id }).update(data);

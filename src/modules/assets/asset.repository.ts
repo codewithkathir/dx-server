@@ -37,7 +37,10 @@ class AssetRepository extends BaseRepository<AssetRow> {
         "e.emp_name as employee_name",
         "e.employee_code as employee_code",
         db.raw("(SELECT MIN(i.id) FROM asset_images i WHERE i.asset_id = assets.id) AS cover_image_id"),
-        db.raw("(SELECT COUNT(*) FROM asset_images i WHERE i.asset_id = assets.id) AS image_count")
+        db.raw("(SELECT COUNT(*) FROM asset_images i WHERE i.asset_id = assets.id) AS image_count"),
+        db.raw(
+          "(SELECT o.reading_km FROM asset_odometer_readings o WHERE o.asset_id = assets.id ORDER BY o.reading_date DESC, o.id DESC LIMIT 1) AS odometer_km"
+        )
       );
   }
 
@@ -82,6 +85,12 @@ class AssetRepository extends BaseRepository<AssetRow> {
 
   async findByIdForUpdate(trx: Knex.Transaction, id: number): Promise<AssetRow | undefined> {
     return trx("assets").where({ id }).whereNull("deleted_at").forUpdate().first();
+  }
+
+  /** Registration/asset numbers for a batch of ids (expense lists). */
+  async findLabels(ids: number[]): Promise<Array<{ id: number; asset_no: string; name: string }>> {
+    if (ids.length === 0) return [];
+    return this.db("assets").whereIn("id", ids).select("id", "asset_no", "name");
   }
 
   async findByAssetNo(assetNo: string, db: Db = this.db): Promise<AssetRow | undefined> {

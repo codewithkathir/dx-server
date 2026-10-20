@@ -50,6 +50,7 @@ class CategoryRepository extends BaseRepository<CategoryRow> {
       name: input.name,
       description: input.description ?? null,
       status: input.status ?? "active",
+      is_vehicle_expense: input.isVehicleExpense ?? false,
       created_by: createdBy ?? null,
       updated_by: createdBy ?? null,
       created_at: this.db.fn.now(),
@@ -67,6 +68,7 @@ class CategoryRepository extends BaseRepository<CategoryRow> {
     if (input.name !== undefined) data.name = input.name;
     if (input.description !== undefined) data.description = input.description;
     if (input.status !== undefined) data.status = input.status;
+    if (input.isVehicleExpense !== undefined) data.is_vehicle_expense = input.isVehicleExpense;
     if (updatedBy !== undefined) data.updated_by = updatedBy;
 
     return this.baseQuery().where({ id }).update(data);
