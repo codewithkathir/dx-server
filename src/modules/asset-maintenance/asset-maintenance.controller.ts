@@ -100,6 +100,12 @@ class AssetMaintenanceController {
     successResponse(res, await assetMaintenanceService.vehicleExpenseSummary(id), "Vehicle expense summary fetched successfully");
   });
 
+  /** Employee app: spend and due items for a vehicle the employee has. */
+  myVehicleSummary = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.validated!.params as IdParam;
+    successResponse(res, await assetMaintenanceService.employeeVehicleSummary(req.user!.id, id), "Vehicle summary fetched successfully");
+  });
+
   // ── Service types ──────────────────────────────────────────────────────────
 
   listServiceTypes = asyncHandler(async (req: Request, res: Response) => {

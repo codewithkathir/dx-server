@@ -17,6 +17,9 @@ export interface SubSubCategoryPublic {
   id: number;
   categoryId: number;
   subCategoryId: number;
+  /** Parent names (list responses). */
+  categoryName?: string | null;
+  subCategoryName?: string | null;
   name: string;
   description: string | null;
   status: CatalogStatus;

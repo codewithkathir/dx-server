@@ -15,6 +15,8 @@ export interface SubCategoryRow extends BaseEntity {
 export interface SubCategoryPublic {
   id: number;
   categoryId: number;
+  /** Main category name (list responses). */
+  categoryName?: string | null;
   name: string;
   description: string | null;
   status: CatalogStatus;
