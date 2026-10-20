@@ -1,4 +1,5 @@
 import { ApiError } from "../../shared/errors/api.error";
+import { assetMaintenanceService } from "../asset-maintenance/asset-maintenance.service";
 import { ErrorCodes } from "../../shared/errors/error-codes";
 import { buildPaginationMeta } from "../../shared/utils/pagination.util";
 import { categoryService } from "../categories/category.service";
@@ -19,6 +20,7 @@ class SubCategoryService {
       name: row.name,
       description: row.description,
       status: row.status,
+      serviceTypeId: row.service_type_id ?? null,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -44,6 +46,7 @@ class SubCategoryService {
     input: CreateSubCategoryInput,
     createdBy?: number
   ): Promise<SubCategoryPublic> {
+    if (input.serviceTypeId) await assetMaintenanceService.assertServiceTypeExists(input.serviceTypeId);
     await categoryService.assertCategoryExists(input.categoryId);
 
     const existing = await subCategoryRepository.findByNameInCategory(
@@ -67,6 +70,7 @@ class SubCategoryService {
     input: UpdateSubCategoryInput,
     updatedBy?: number
   ): Promise<SubCategoryPublic> {
+    if (input.serviceTypeId) await assetMaintenanceService.assertServiceTypeExists(input.serviceTypeId);
     const row = await subCategoryRepository.findById(id);
     if (!row) {
       throw new ApiError("Sub category not found", ErrorCodes.NOT_FOUND, 404);

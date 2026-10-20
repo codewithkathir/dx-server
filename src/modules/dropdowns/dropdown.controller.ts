@@ -30,6 +30,16 @@ class DropdownController {
     successResponse(res, data, "Payment methods fetched successfully");
   });
 
+  /** Admin: every vehicle. */
+  listVehicles = asyncHandler(async (_req: Request, res: Response) => {
+    successResponse(res, await dropdownService.listVehicles(), "Vehicles fetched successfully");
+  });
+
+  /** Employee app: the vehicles the signed-in employee currently has. */
+  listMyVehicles = asyncHandler(async (req: Request, res: Response) => {
+    successResponse(res, await dropdownService.listVehicles(req.user!.id), "Vehicles fetched successfully");
+  });
+
   listWhom = asyncHandler(async (_req: Request, res: Response) => {
     const data = await dropdownService.listWhom();
     successResponse(res, data, "Whom list fetched successfully");

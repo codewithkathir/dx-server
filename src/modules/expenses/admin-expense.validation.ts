@@ -15,6 +15,7 @@ export const adminExpenseListQuerySchema = z
     sortBy: z.string().optional(),
     order: z.enum(["asc", "desc"]).default("desc"),
     employeeId: z.coerce.number().int().positive().optional(),
+    assetId: z.coerce.number().int().positive().optional(),
     status: z.enum(AdminExpenseStatuses).optional(),
     /** Combined stage: pending (awaiting approval), approved (awaiting payment), paid, rejected. */
     stage: z.enum(ExpenseStages).optional(),
@@ -73,7 +74,11 @@ export type UpdateAdminExpenseStatusBody = z.infer<
 const reviewNoteSchema = z.string().trim().max(1000);
 
 export const approveExpenseSchema = z
-  .object({ note: z.union([reviewNoteSchema, z.null()]).optional() })
+  .object({
+    note: z.union([reviewNoteSchema, z.null()]).optional(),
+    /** Don't draw on the employee's advance (e.g. they paid with their own card). */
+    reimburseInFull: z.boolean().optional(),
+  })
   .strict();
 
 /** Rejections must tell the employee why. */
@@ -81,5 +86,13 @@ export const rejectExpenseSchema = z
   .object({ note: reviewNoteSchema.min(1, "Add a note telling the employee why the claim was rejected") })
   .strict();
 
+export const updateExpenseVehicleSchema = z
+  .object({
+    assetId: z.number().int().positive().nullable(),
+    odometerKm: z.number().int().min(0).max(9999999).nullable(),
+  })
+  .strict();
+
+export type UpdateExpenseVehicleBody = z.infer<typeof updateExpenseVehicleSchema>;
 export type ApproveExpenseBody = z.infer<typeof approveExpenseSchema>;
 export type RejectExpenseBody = z.infer<typeof rejectExpenseSchema>;

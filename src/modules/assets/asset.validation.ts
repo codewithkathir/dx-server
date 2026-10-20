@@ -23,6 +23,8 @@ const money = z
   .max(999999999.99)
   .refine(hasAtMostTwoDecimals, "Use at most 2 decimals");
 
+const odometerKm = z.number().int().min(0).max(9999999);
+
 const assetFields = {
   /** Leave out to get the next automatic number (AST-YYYY-NNNN). */
   assetNo: z
@@ -86,6 +88,8 @@ export const assignAssetSchema = z
     /** Defaults to the asset's current condition. */
     condition: z.enum(AssetConditions).optional(),
     notes: optionalText(2000),
+    /** Vehicles: odometer when handed over; also recorded as an odometer reading. */
+    odometerKm: odometerKm.optional(),
   })
   .strict()
   .refine((d) => !d.expectedReturnDate || d.expectedReturnDate >= d.assignedDate, {
@@ -99,6 +103,7 @@ export const returnAssetSchema = z
     condition: z.enum(AssetConditions),
     nextStatus: z.enum(UnassignedAssetStatuses).default("available"),
     notes: optionalText(2000),
+    odometerKm: odometerKm.optional(),
   })
   .strict();
 

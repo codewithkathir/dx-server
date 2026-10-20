@@ -24,6 +24,11 @@ export async function resetDatabase(): Promise<void> {
 
   await db.raw("SET FOREIGN_KEY_CHECKS = 0");
   await db("refresh_tokens").del();
+  await db("employee_account_entries").del();
+  await db("asset_odometer_readings").del();
+  await db("asset_service_records").del();
+  // Keep the service types seeded by the migration (created_by NULL); drop ones tests made.
+  await db("asset_service_types").whereNotNull("created_by").del();
   await db("asset_images").del();
   await db("asset_assignments").del();
   await db("assets").del();

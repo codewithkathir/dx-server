@@ -18,6 +18,12 @@ export interface ExpenseRow {
   description: string | null;
   payment_method_id: number;
   support_file: string | null;
+  /** Vehicle the claim was for (vehicle categories). */
+  asset_id: number | null;
+  odometer_km: number | null;
+  /** Approved claims: part covered by the employee's advance / part reimbursed via Payables. */
+  advance_amount: string;
+  reimbursable_amount: string | null;
   employee_status: EmployeeExpenseStatus;
   admin_status: AdminExpenseStatus;
   review_note: string | null;
@@ -40,6 +46,14 @@ export interface ExpensePublic {
   description: string | null;
   paymentMethodId: number;
   supportFile: string | null;
+  assetId: number | null;
+  odometerKm: number | null;
+  /** Registration and name of `assetId` (list/detail responses). */
+  vehicle?: { assetNo: string; name: string } | null;
+  /** Part of the claim taken from the employee's advance (0 until approved). */
+  advanceAmount: number;
+  /** Part reimbursed through Payables; null until approved. */
+  reimbursableAmount: number | null;
   employeeStatus: EmployeeExpenseStatus;
   adminStatus: AdminExpenseStatus;
   /** Admin's note to the employee on approval or rejection. */
@@ -53,6 +67,7 @@ export interface ExpensePublic {
 
 export interface AdminExpenseFilterQuery {
   employeeId?: number;
+  assetId?: number;
   adminStatus?: AdminExpenseStatus;
   stage?: ExpenseStage;
   categoryId?: number;
@@ -95,6 +110,8 @@ export interface CreateExpenseInput {
   description?: string | null;
   paymentMethodId: number;
   supportFile?: string | null;
+  assetId?: number | null;
+  odometerKm?: number | null;
 }
 
 export interface UpdateExpenseInput {
@@ -107,6 +124,14 @@ export interface UpdateExpenseInput {
   description?: string | null;
   paymentMethodId?: number;
   supportFile?: string | null;
+  assetId?: number | null;
+  odometerKm?: number | null;
+}
+
+/** Admin correction of the vehicle (and km) on a claim. */
+export interface UpdateExpenseVehicleInput {
+  assetId: number | null;
+  odometerKm: number | null;
 }
 
 export interface StageTotals {

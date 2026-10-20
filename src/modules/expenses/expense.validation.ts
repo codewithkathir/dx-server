@@ -13,6 +13,12 @@ const optionalNullableIdSchema = z.preprocess(
   z.coerce.number().int().positive().nullable().optional()
 );
 
+/** Optional whole km; multipart sends "" for an empty field. */
+const optionalKmSchema = z.preprocess(
+  (value) => (value === "" || value === "null" ? null : value),
+  z.coerce.number().int().min(0).max(9999999).nullable().optional()
+);
+
 const expenseFieldsSchema = {
   date: dateSchema,
   amount: z.coerce.number().positive().max(999999999.99),
@@ -23,6 +29,9 @@ const expenseFieldsSchema = {
   subSubCategoryId: optionalNullableIdSchema,
   description: z.string().max(5000).trim().optional().nullable(),
   paymentMethodId: z.coerce.number().int().positive(),
+  /** Vehicle categories: the vehicle and its km (required there, ignored elsewhere). */
+  assetId: optionalNullableIdSchema,
+  odometerKm: optionalKmSchema,
 };
 
 export const createExpenseSchema = z.object(expenseFieldsSchema).strict();
@@ -37,6 +46,8 @@ export const updateExpenseSchema = z
     subSubCategoryId: optionalNullableIdSchema,
     description: z.union([z.string().max(5000).trim(), z.null()]).optional(),
     paymentMethodId: z.coerce.number().int().positive().optional(),
+    assetId: optionalNullableIdSchema,
+    odometerKm: optionalKmSchema,
   })
   .strict()
   .refine((data) => Object.keys(data).length > 0, {

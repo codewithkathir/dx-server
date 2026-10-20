@@ -8,6 +8,8 @@ export interface CategoryRow extends BaseEntity {
   name: string;
   description: string | null;
   status: CatalogStatus;
+  /** MySQL boolean: 0/1. */
+  is_vehicle_expense: number | boolean;
   created_by: number | null;
   updated_by: number | null;
 }
@@ -19,6 +21,8 @@ export interface CategoryPublic {
   name: string;
   description: string | null;
   status: CatalogStatus;
+  /** Claims in this category ask for a vehicle and its odometer. */
+  isVehicleExpense: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,12 +31,14 @@ export interface CreateCategoryInput {
   name: string;
   description?: string | null;
   status?: CatalogStatus;
+  isVehicleExpense?: boolean;
 }
 
 export interface UpdateCategoryInput {
   name?: string;
   description?: string | null;
   status?: CatalogStatus;
+  isVehicleExpense?: boolean;
 }
 
 export interface CategoryListQuery extends ListQueryOptions {}

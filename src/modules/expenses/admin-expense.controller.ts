@@ -12,6 +12,7 @@ import type {
   UpdateAdminExpenseStatusBody,
   ApproveExpenseBody,
   RejectExpenseBody,
+  UpdateExpenseVehicleBody,
 } from "./admin-expense.validation";
 
 class AdminExpenseController {
@@ -60,11 +61,28 @@ class AdminExpenseController {
     successResponse(res, expense, "Expense status updated successfully");
   });
 
+  updateExpenseVehicle = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.validated!.params as IdParam;
+    const expense = await adminExpenseService.updateExpenseVehicle(id, req.validated!.body as UpdateExpenseVehicleBody, req.user?.id);
+    successResponse(res, expense, "Expense vehicle updated");
+  });
+
+  getApprovalPreview = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.validated!.params as IdParam;
+    successResponse(res, await adminExpenseService.getApprovalPreview(id), "Approval preview fetched successfully");
+  });
+
   approveExpense = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.validated!.params as IdParam;
-    const { note } = req.validated!.body as ApproveExpenseBody;
-    const expense = await adminExpenseService.approveExpense(id, req.user?.id, note);
-    successResponse(res, expense, "Expense approved; reimbursement bill created");
+    const { note, reimburseInFull } = req.validated!.body as ApproveExpenseBody;
+    const expense = await adminExpenseService.approveExpense(id, req.user?.id, note, reimburseInFull);
+    const message =
+      expense.advanceAmount > 0 && !expense.reimbursableAmount
+        ? "Expense approved and settled from the employee's advance"
+        : expense.advanceAmount > 0
+          ? "Expense approved; part settled from the advance, reimbursement bill created for the rest"
+          : "Expense approved; reimbursement bill created";
+    successResponse(res, expense, message);
   });
 
   rejectExpense = asyncHandler(async (req: Request, res: Response) => {

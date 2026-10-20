@@ -9,6 +9,7 @@ export const createSubSubCategorySchema = z
     name: z.string().min(1).max(200).trim(),
     description: z.string().max(2000).trim().optional().nullable(),
     status: z.enum(CatalogStatuses).optional(),
+    serviceTypeId: z.number().int().positive().nullable().optional(),
   })
   .strict();
 
@@ -19,6 +20,7 @@ export const updateSubSubCategorySchema = z
     name: z.string().min(1).max(200).trim().optional(),
     description: z.union([z.string().max(2000).trim(), z.null()]).optional(),
     status: z.enum(CatalogStatuses).optional(),
+    serviceTypeId: z.number().int().positive().nullable().optional(),
   })
   .strict()
   .refine((data) => Object.keys(data).length > 0, {

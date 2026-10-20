@@ -6,6 +6,8 @@ import {
   getMimeTypeFromFilename,
   resolveUploadAbsolutePath,
 } from "../../shared/utils/file.util";
+import { assetMaintenanceService } from "../asset-maintenance/asset-maintenance.service";
+import { assetRepository } from "../assets/asset.repository";
 import { categoryRepository } from "../categories/category.repository";
 import { paymentMethodRepository } from "../payment-methods/payment-method.repository";
 import { subCategoryRepository } from "../sub-categories/sub-category.repository";
@@ -49,6 +51,10 @@ class ExpenseService {
       description: row.description,
       paymentMethodId: row.payment_method_id,
       supportFile: row.support_file,
+      assetId: row.asset_id ?? null,
+      odometerKm: row.odometer_km ?? null,
+      advanceAmount: Number(row.advance_amount ?? 0),
+      reimbursableAmount: row.reimbursable_amount == null ? null : Number(row.reimbursable_amount),
       employeeStatus: row.employee_status,
       adminStatus: row.admin_status,
       reviewNote: row.review_note ?? null,
@@ -108,6 +114,33 @@ class ExpenseService {
     }
   }
 
+  /**
+   * Vehicle categories need the vehicle the employee had on that date and its
+   * km; other categories never carry a vehicle. Returns the values to store.
+   */
+  private async resolveVehicle(
+    employeeId: number,
+    input: { categoryId: number; date: string; assetId: number | null; odometerKm: number | null }
+  ): Promise<{ assetId: number | null; odometerKm: number | null }> {
+    const category = await categoryRepository.findById(input.categoryId);
+    if (!category?.is_vehicle_expense) return { assetId: null, odometerKm: null };
+    if (!input.assetId) {
+      throw new ApiError("Pick the vehicle this expense was for", ErrorCodes.VALIDATION_ERROR, 400);
+    }
+    if (input.odometerKm == null) {
+      throw new ApiError("Enter the vehicle's odometer reading", ErrorCodes.VALIDATION_ERROR, 400);
+    }
+    await assetMaintenanceService.assertClaimVehicle(employeeId, input.assetId, input.date, input.odometerKm);
+    return { assetId: input.assetId, odometerKm: input.odometerKm };
+  }
+
+  /** Adds each claim's vehicle registration (one query for the page). */
+  async withVehicles(expenses: ExpensePublic[]): Promise<ExpensePublic[]> {
+    const ids = [...new Set(expenses.map((e) => e.assetId).filter((id): id is number => id !== null))];
+    const labels = new Map((await assetRepository.findLabels(ids)).map((a) => [a.id, { assetNo: a.asset_no, name: a.name }]));
+    return expenses.map((e) => ({ ...e, vehicle: e.assetId ? labels.get(e.assetId) ?? null : null }));
+  }
+
   async listMyExpenses(employeeId: number, query: ExpenseListQuery) {
     const { data, total } = await expenseRepository.findAllPaginatedForEmployee(
       employeeId,
@@ -138,7 +171,7 @@ class ExpenseService {
 
   private async withReimbursements(expenses: ExpensePublic[]): Promise<ExpensePublic[]> {
     const reimbursements = await payableService.getReimbursements(expenses.map((e) => e.id));
-    return expenses.map((e) => ({ ...e, reimbursement: reimbursements.get(e.id) ?? null }));
+    return this.withVehicles(expenses.map((e) => ({ ...e, reimbursement: reimbursements.get(e.id) ?? null })));
   }
 
   /** The guarded write matched nothing: the status changed after we read it. */
@@ -163,8 +196,14 @@ class ExpenseService {
     input: CreateExpenseInput
   ): Promise<ExpensePublic> {
     await this.assertCatalogReferences(input);
+    const vehicle = await this.resolveVehicle(employeeId, {
+      categoryId: input.categoryId,
+      date: input.date,
+      assetId: input.assetId ?? null,
+      odometerKm: input.odometerKm ?? null,
+    });
     // A claim is always for the employee submitting it; any "whom" sent by the client is ignored.
-    const id = await expenseRepository.create(employeeId, { ...input, whom: employeeId });
+    const id = await expenseRepository.create(employeeId, { ...input, ...vehicle, whom: employeeId });
     return this.getMyExpenseById(employeeId, id);
   }
 
@@ -193,8 +232,18 @@ class ExpenseService {
     };
 
     await this.assertCatalogReferences(merged);
+    const vehicle = await this.resolveVehicle(employeeId, {
+      categoryId: merged.categoryId,
+      date: input.date ?? this.formatDateForApi(existing.date),
+      assetId: input.assetId !== undefined ? input.assetId : existing.asset_id,
+      odometerKm: input.odometerKm !== undefined ? input.odometerKm : existing.odometer_km,
+    });
 
-    const updated = await expenseRepository.updateByIdForEmployee(expenseId, employeeId, { ...input, whom: employeeId });
+    const updated = await expenseRepository.updateByIdForEmployee(expenseId, employeeId, {
+      ...input,
+      ...vehicle,
+      whom: employeeId,
+    });
     if (updated === 0) await this.assertStillEditable(employeeId, expenseId);
     return this.getMyExpenseById(employeeId, expenseId);
   }

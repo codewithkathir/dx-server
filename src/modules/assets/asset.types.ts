@@ -27,6 +27,8 @@ export interface AssetListRow extends AssetRow {
   acknowledged_at: Date | null;
   cover_image_id: number | null;
   image_count: number | string;
+  /** Latest odometer reading, if any (vehicles). */
+  odometer_km: number | null;
 }
 
 export interface AssignmentRow {
@@ -43,6 +45,8 @@ export interface AssignmentRow {
   condition_in: AssetCondition | null;
   return_notes: string | null;
   returned_by: number | null;
+  odometer_out: number | null;
+  odometer_in: number | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -94,6 +98,8 @@ export interface AssetPublic {
   /** First photo, for list thumbnails. */
   coverImageId: number | null;
   imageCount: number;
+  /** Latest odometer reading (vehicles); null when none recorded. */
+  odometerKm: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -138,11 +144,15 @@ export interface AssignmentPublic {
   conditionIn: AssetCondition | null;
   returnNotes: string | null;
   returnedByName: string | null;
+  odometerOut: number | null;
+  odometerIn: number | null;
 }
 
 export interface AssetDetail extends AssetPublic {
   history: AssignmentPublic[];
   images: AssetImagePublic[];
+  /** Latest odometer reading (vehicles); null when none recorded. */
+  odometer: { readingKm: number; readingDate: string } | null;
 }
 
 export interface EmployeeAssetPublic {
@@ -164,6 +174,8 @@ export interface EmployeeAssetPublic {
   conditionIn: AssetCondition | null;
   returnNotes: string | null;
   images: AssetImagePublic[];
+  /** Vehicles still with the employee: latest odometer reading. */
+  odometer: { readingKm: number; readingDate: string } | null;
 }
 
 export interface AssetSummary {

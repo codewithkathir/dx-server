@@ -46,4 +46,10 @@ dropdownAdminRoutes.get(
   dropdownController.listWhom
 );
 
+dropdownAdminRoutes.get(
+  "/vehicles",
+  requirePermission(Permissions.ASSET_READ),
+  dropdownController.listVehicles
+);
+
 export default dropdownAdminRoutes;

@@ -7,6 +7,7 @@ export interface SubCategoryRow extends BaseEntity {
   name: string;
   description: string | null;
   status: CatalogStatus;
+  service_type_id: number | null;
   created_by: number | null;
   updated_by: number | null;
 }
@@ -17,6 +18,8 @@ export interface SubCategoryPublic {
   name: string;
   description: string | null;
   status: CatalogStatus;
+  /** Approved vehicle claims here create a service record of this type. */
+  serviceTypeId: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,6 +29,7 @@ export interface CreateSubCategoryInput {
   name: string;
   description?: string | null;
   status?: CatalogStatus;
+  serviceTypeId?: number | null;
 }
 
 export interface UpdateSubCategoryInput {
@@ -33,6 +37,7 @@ export interface UpdateSubCategoryInput {
   name?: string;
   description?: string | null;
   status?: CatalogStatus;
+  serviceTypeId?: number | null;
 }
 
 export interface SubCategoryListQuery extends ListQueryOptions {

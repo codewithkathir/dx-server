@@ -1,4 +1,5 @@
 import { ApiError } from "../../shared/errors/api.error";
+import { assetMaintenanceService } from "../asset-maintenance/asset-maintenance.service";
 import { ErrorCodes } from "../../shared/errors/error-codes";
 import { buildPaginationMeta } from "../../shared/utils/pagination.util";
 import { categoryService } from "../categories/category.service";
@@ -21,6 +22,7 @@ class SubSubCategoryService {
       name: row.name,
       description: row.description,
       status: row.status,
+      serviceTypeId: row.service_type_id ?? null,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -58,6 +60,7 @@ class SubSubCategoryService {
     input: CreateSubSubCategoryInput,
     createdBy?: number
   ): Promise<SubSubCategoryPublic> {
+    if (input.serviceTypeId) await assetMaintenanceService.assertServiceTypeExists(input.serviceTypeId);
     await this.validateHierarchy(input.categoryId, input.subCategoryId);
 
     const existing = await subSubCategoryRepository.findByNameInHierarchy(
@@ -82,6 +85,7 @@ class SubSubCategoryService {
     input: UpdateSubSubCategoryInput,
     updatedBy?: number
   ): Promise<SubSubCategoryPublic> {
+    if (input.serviceTypeId) await assetMaintenanceService.assertServiceTypeExists(input.serviceTypeId);
     const row = await subSubCategoryRepository.findById(id);
     if (!row) {
       throw new ApiError("Sub sub category not found", ErrorCodes.NOT_FOUND, 404);
