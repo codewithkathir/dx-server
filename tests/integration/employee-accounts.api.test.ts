@@ -67,22 +67,22 @@ describe("Employee accounts (advances)", () => {
     account = await request(app).get(base).set(admin).expect(200);
     expect(account.body.data).toMatchObject({ balance: 200, owedToEmployee: 0 });
 
-    // "Reimburse in full" leaves the advance alone.
-    const ownCard = await claim(80);
-    const full = await request(app)
-      .post(`/api/v1/admin/employee-expenses/${ownCard}/approve`)
+    // The advance is always used; the old "reimburse in full" option is gone.
+    const another = await claim(80);
+    await request(app)
+      .post(`/api/v1/admin/employee-expenses/${another}/approve`)
       .set(admin)
       .send({ reimburseInFull: true })
-      .expect(200);
-    expect(full.body.data).toMatchObject({ advanceAmount: 0, reimbursableAmount: 80 });
-
-    // Returns can't exceed what the employee holds; voiding the advance would go negative.
+      .expect(422);
     await request(app).post(`${base}/returns`).set(admin).send({ amount: 300, entryDate: today(), paymentMethodId }).expect(400);
     await request(app).post(`${base}/returns`).set(admin).send({ amount: 150, entryDate: today(), paymentMethodId }).expect(201);
+    // 50 left: the 80 claim splits 50 from the advance + a 30 bill.
+    const after = await request(app).post(`/api/v1/admin/employee-expenses/${another}/approve`).set(admin).send({}).expect(200);
+    expect(after.body.data).toMatchObject({ advanceAmount: 50, reimbursableAmount: 30 });
     const entries = await request(app).get(`${base}/entries?includeVoided=true`).set(admin).expect(200);
     const types = entries.body.data.map((e: { type: string; voidedAt: string | null }) => `${e.type}${e.voidedAt ? "×" : ""}`);
-    expect(types).toEqual(["return", "expense×", "expense", "advance"]);
-    expect(entries.body.data[0].runningBalance).toBe(50);
+    expect(types).toEqual(["expense", "return", "expense×", "expense", "advance"]);
+    expect(entries.body.data[0].runningBalance).toBe(0);
     const advanceEntry = entries.body.data.find((e: { type: string }) => e.type === "advance");
     await request(app)
       .post(`/api/v1/admin/employee-accounts/entries/${advanceEntry.id}/void`)
@@ -97,18 +97,18 @@ describe("Employee accounts (advances)", () => {
       .expect(409);
 
     // Adjustments can't push the balance below zero.
-    await request(app).post(`${base}/adjustments`).set(admin).send({ amount: -60, entryDate: today(), notes: "x" }).expect(400);
-    await request(app).post(`${base}/adjustments`).set(admin).send({ amount: -50, entryDate: today(), notes: "Write-off" }).expect(201);
+    await request(app).post(`${base}/adjustments`).set(admin).send({ amount: -10, entryDate: today(), notes: "x" }).expect(400);
+    await request(app).post(`${base}/adjustments`).set(admin).send({ amount: 20, entryDate: today(), notes: "Cash count" }).expect(201);
 
     // The employee sees their own balance and statement.
     const mine = await request(app).get("/api/v1/employee/account").set(employee).expect(200);
-    expect(mine.body.data.balance).toBe(0);
+    expect(mine.body.data.balance).toBe(20);
     const myEntries = await request(app).get("/api/v1/employee/account/entries").set(employee).expect(200);
-    expect(myEntries.body.data).toHaveLength(4);
+    expect(myEntries.body.data).toHaveLength(5);
 
     const list = await request(app).get("/api/v1/admin/employee-accounts?show=owed").set(admin).expect(200);
     expect(list.body.data.map((a: { employeeId: number }) => a.employeeId)).toEqual([employeeId]);
     const summary = await request(app).get("/api/v1/admin/employee-accounts/summary").set(admin).expect(200);
-    expect(summary.body.data).toMatchObject({ advancedThisMonth: 500, returnedThisMonth: 150, owedToEmployees: 80 });
+    expect(summary.body.data).toMatchObject({ advancedThisMonth: 500, returnedThisMonth: 150, owedToEmployees: 30 });
   });
 });

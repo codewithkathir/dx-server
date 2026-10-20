@@ -40,15 +40,13 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema.alterTable("asset_odometer_readings", (table) => {
     table.integer("expense_id").unsigned().nullable().references("id").inTable("expenses").onDelete("CASCADE");
   });
-  // "fuel_expense" was a placeholder; readings from any claim use "expense".
-  await knex("asset_odometer_readings").where({ source: "fuel_expense" }).update({ source: "manual" });
+  // "fuel_expense" was an unused placeholder; readings from any claim use "expense".
   await knex.schema.alterTable("asset_odometer_readings", (table) => {
     table.enum("source", NEW_SOURCES).notNullable().defaultTo("manual").alter();
   });
 }
 
 export async function down(knex: Knex): Promise<void> {
-  await knex("asset_odometer_readings").where({ source: "expense" }).del();
   await knex.schema.alterTable("asset_odometer_readings", (table) => {
     table.enum("source", OLD_SOURCES).notNullable().defaultTo("manual").alter();
     table.dropForeign(["expense_id"]);

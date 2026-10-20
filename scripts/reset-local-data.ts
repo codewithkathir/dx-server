@@ -173,7 +173,7 @@ const OTHER_ASSETS = [
 ] as const;
 
 const SERVICE_TYPES = [
-  // The five defaults from the create_asset_maintenance migration.
+  // The five defaults from the 09_asset_service_types seed.
   { code: "OIL_CHANGE", name: "Oil change", category: "vehicle", interval_days: 90, interval_km: 5000 },
   { code: "TYRE_CHANGE", name: "Tyre change", category: "vehicle", interval_days: 730, interval_km: 40000 },
   { code: "SERVICE", name: "Service", category: "vehicle", interval_days: 180, interval_km: 10000 },

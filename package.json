@@ -25,6 +25,7 @@
     "seed:qa": "APP_ENV=qa npm run seed",
     "seed:employees": "tsx scripts/seed-employees.ts",
     "db:reset-local": "APP_ENV=local tsx scripts/reset-local-data.ts",
+    "permissions:sync": "tsx scripts/sync-permissions.ts",
     "seed:employees:force": "tsx scripts/seed-employees.ts -- --force",
     "db:finalize": "npm run migrate && npm run seed",
     "db:up": "docker compose up -d",

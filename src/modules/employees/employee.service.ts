@@ -1,4 +1,5 @@
 import { db } from "../../database/knex";
+import { employeeAccountService } from "../employee-accounts/employee-account.service";
 import { ApiError } from "../../shared/errors/api.error";
 import { ErrorCodes } from "../../shared/errors/error-codes";
 import { hashPassword } from "../../shared/utils/password.util";
@@ -64,8 +65,9 @@ class EmployeeService {
 
   async listEmployees(query: EmployeeListQuery) {
     const { data, total } = await employeeRepository.findAllPaginated(query);
+    const balances = await employeeAccountService.balancesFor(data.map((row) => row.id));
     return {
-      data: data.map((row) => this.toPublicEmployee(row)),
+      data: data.map((row) => ({ ...this.toPublicEmployee(row), advanceBalance: balances.get(row.id) ?? 0 })),
       meta: buildPaginationMeta(query.page, query.limit, total),
     };
   }

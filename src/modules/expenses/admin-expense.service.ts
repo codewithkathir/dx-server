@@ -102,7 +102,7 @@ class AdminExpenseService {
   }
 
   /**
-   * Approving first draws the claim from the employee's advance; only what
+   * Approving always draws the claim from the employee's advance first; only what
    * the advance can't cover becomes a payable bill. A claim the advance
    * covers fully is settled ("paid") straight away; otherwise it becomes
    * "paid" through payments on its bill.
@@ -110,8 +110,7 @@ class AdminExpenseService {
   async approveExpense(
     expenseId: number,
     approvedBy?: number,
-    note?: string | null,
-    reimburseInFull = false
+    note?: string | null
   ): Promise<ExpensePublic> {
     let fromAdvance = 0;
     await db.transaction(async (trx) => {
@@ -126,7 +125,7 @@ class AdminExpenseService {
           409
         );
       }
-      const settlement = await employeeAccountService.settleExpense(trx, expense, !reimburseInFull, approvedBy);
+      const settlement = await employeeAccountService.settleExpense(trx, expense, approvedBy);
       fromAdvance = settlement.fromAdvance;
       if (settlement.reimbursable > 0) {
         await createBillForExpense(

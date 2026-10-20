@@ -74,11 +74,7 @@ export type UpdateAdminExpenseStatusBody = z.infer<
 const reviewNoteSchema = z.string().trim().max(1000);
 
 export const approveExpenseSchema = z
-  .object({
-    note: z.union([reviewNoteSchema, z.null()]).optional(),
-    /** Don't draw on the employee's advance (e.g. they paid with their own card). */
-    reimburseInFull: z.boolean().optional(),
-  })
+  .object({ note: z.union([reviewNoteSchema, z.null()]).optional() })
   .strict();
 
 /** Rejections must tell the employee why. */
