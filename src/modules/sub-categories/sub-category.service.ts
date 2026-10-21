@@ -2,6 +2,7 @@ import { ApiError } from "../../shared/errors/api.error";
 import { assetMaintenanceService } from "../asset-maintenance/asset-maintenance.service";
 import { ErrorCodes } from "../../shared/errors/error-codes";
 import { buildPaginationMeta } from "../../shared/utils/pagination.util";
+import { categoryRepository } from "../categories/category.repository";
 import { categoryService } from "../categories/category.service";
 import { subCategoryRepository } from "./sub-category.repository";
 import type {
@@ -28,8 +29,9 @@ class SubCategoryService {
 
   async listSubCategories(query: SubCategoryListQuery) {
     const { data, total } = await subCategoryRepository.findAllPaginated(query);
+    const categoryNames = await categoryRepository.findNames(data.map((row) => row.category_id));
     return {
-      data: data.map((row) => this.toPublic(row)),
+      data: data.map((row) => ({ ...this.toPublic(row), categoryName: categoryNames.get(row.category_id) ?? null })),
       meta: buildPaginationMeta(query.page, query.limit, total),
     };
   }

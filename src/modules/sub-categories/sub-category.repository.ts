@@ -52,6 +52,16 @@ class SubCategoryRepository extends BaseRepository<SubCategoryRow> {
     return paginateQuery<SubCategoryRow>(this.buildListQuery(options), options);
   }
 
+  /** id → name for a page of rows (includes inactive and deleted, so a label is always found). */
+  async findNames(ids: number[]): Promise<Map<number, string>> {
+    if (ids.length === 0) return new Map();
+    const rows = (await this.db(this.tableName).whereIn("id", [...new Set(ids)]).select("id", "name")) as Array<{
+      id: number;
+      name: string;
+    }>;
+    return new Map(rows.map((r) => [r.id, r.name]));
+  }
+
   async create(
     input: CreateSubCategoryInput,
     createdBy?: number

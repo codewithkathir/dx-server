@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { PartyStatuses } from "../constants/finance";
-import { emailSchema } from "./common.validation";
+import { countryCodeSchema, emailSchema } from "./common.validation";
 
 const optionalText = (max: number) =>
   z.union([z.string().max(max).trim(), z.null()]).optional();
@@ -13,7 +13,7 @@ export const partyFields = {
   contactName2: optionalText(150),
   companyAddress: optionalText(1000),
   cityState: optionalText(150),
-  country: optionalText(100),
+  country: z.union([countryCodeSchema, z.null()]).optional(),
   phone1: optionalPhone,
   phone2: optionalPhone,
   email: z.union([emailSchema, z.null()]).optional(),

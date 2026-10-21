@@ -1,4 +1,4 @@
-import { getCountryCode } from "countries-list";
+import { countries, getCountryCode, type TCountryCode } from "countries-list";
 import { parsePhoneNumberFromString, type CountryCode } from "libphonenumber-js";
 import { ApiError } from "../errors/api.error";
 import { ErrorCodes } from "../errors/error-codes";
@@ -12,6 +12,13 @@ const COUNTRY_ALIASES: Record<string, CountryCode> = {
   uk: "GB",
   usa: "US",
 };
+
+/** Display name for a stored ISO code ("AE" → "United Arab Emirates"); unknown values pass through. */
+export function countryName(country: string | null | undefined): string | null {
+  const value = country?.trim();
+  if (!value) return null;
+  return countries[value.toUpperCase() as TCountryCode]?.name ?? value;
+}
 
 /** ISO code for a stored country name ("United Arab Emirates", "UAE", "AE"), if known. */
 export function countryCodeFor(country: string | null | undefined): CountryCode | undefined {
@@ -50,7 +57,7 @@ export function assertPhonesMatchCountry(
     .map(([field, { label }]) => ({
       field,
       message: country?.trim()
-        ? `${label} isn't a valid ${country.trim()} number`
+        ? `${label} isn't a valid ${countryName(country)} number`
         : `${label} must include the country code, e.g. +971 50 123 4567`,
     }));
   if (errors.length > 0) {

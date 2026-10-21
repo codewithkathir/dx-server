@@ -2,7 +2,9 @@ import { ApiError } from "../../shared/errors/api.error";
 import { assetMaintenanceService } from "../asset-maintenance/asset-maintenance.service";
 import { ErrorCodes } from "../../shared/errors/error-codes";
 import { buildPaginationMeta } from "../../shared/utils/pagination.util";
+import { categoryRepository } from "../categories/category.repository";
 import { categoryService } from "../categories/category.service";
+import { subCategoryRepository } from "../sub-categories/sub-category.repository";
 import { subCategoryService } from "../sub-categories/sub-category.service";
 import { subSubCategoryRepository } from "./sub-sub-category.repository";
 import type {
@@ -31,8 +33,16 @@ class SubSubCategoryService {
   async listSubSubCategories(query: SubSubCategoryListQuery) {
     const { data, total } =
       await subSubCategoryRepository.findAllPaginated(query);
+    const [categoryNames, subCategoryNames] = await Promise.all([
+      categoryRepository.findNames(data.map((row) => row.category_id)),
+      subCategoryRepository.findNames(data.map((row) => row.sub_category_id)),
+    ]);
     return {
-      data: data.map((row) => this.toPublic(row)),
+      data: data.map((row) => ({
+        ...this.toPublic(row),
+        categoryName: categoryNames.get(row.category_id) ?? null,
+        subCategoryName: subCategoryNames.get(row.sub_category_id) ?? null,
+      })),
       meta: buildPaginationMeta(query.page, query.limit, total),
     };
   }

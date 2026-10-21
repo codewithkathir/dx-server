@@ -179,6 +179,28 @@ export interface VehicleExpenseSummaryRows {
   yearKm: { year_max: number | null; before_max: number | null; year_min: number | null } | undefined;
 }
 
+/** Employee claim form: the selected vehicle's km, the employee's spend on it and what's due. */
+export interface EmployeeVehicleSummary {
+  assetId: number;
+  assetNo: string;
+  name: string;
+  odometer: LatestOdometer | null;
+  /** The employee's own claims for this vehicle (rejected ones excluded). */
+  thisMonth: Totals;
+  thisYear: Totals;
+  pending: Totals;
+  recentClaims: Array<{
+    id: number;
+    date: string;
+    amount: number;
+    categoryName: string;
+    subCategoryName: string;
+    stage: ExpenseStage;
+  }>;
+  /** Latest record per service type, newest due first. */
+  due: Array<{ serviceTypeName: string; startDate: string; endDate: string | null; nextDueKm: number | null }>;
+}
+
 export interface Totals {
   count: number;
   amount: number;

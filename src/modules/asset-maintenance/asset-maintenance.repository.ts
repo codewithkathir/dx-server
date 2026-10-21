@@ -311,6 +311,49 @@ class AssetMaintenanceRepository extends BaseRepository<ServiceRecordRow> {
     return { total, year, month, pending, byCategory, manualServices, yearKm };
   }
 
+  /** One employee's claims for a vehicle: totals since each date, pending, and the latest few. */
+  async employeeVehicleSpend(assetId: number, employeeId: number, monthStart: string, yearStart: string) {
+    const db = this.db;
+    const mine = () =>
+      this.vehicleExpenseQuery(assetId).where("x.employee_id", employeeId).whereNot("x.admin_status", "rejected").whereNot("x.employee_status", "rejected");
+    const sum = (q: Knex.QueryBuilder) =>
+      q.first(db.raw("COUNT(*) AS count"), db.raw("COALESCE(SUM(x.amount), 0) AS amount")) as Promise<
+        { count: number | string; amount: number | string } | undefined
+      >;
+    const [month, year, pending, recent] = await Promise.all([
+      sum(mine().where("x.date", ">=", monthStart)),
+      sum(mine().where("x.date", ">=", yearStart)),
+      sum(applyExpenseStage(mine(), "pending")),
+      mine()
+        .select("x.id", "x.date", "x.amount", "x.employee_status", "x.admin_status", "c.name as category_name", "s.name as sub_category_name")
+        .orderBy("x.date", "desc")
+        .orderBy("x.id", "desc")
+        .limit(3) as Promise<
+        Array<{
+          id: number;
+          date: string;
+          amount: string;
+          employee_status: string;
+          admin_status: string;
+          category_name: string;
+          sub_category_name: string;
+        }>
+      >,
+    ]);
+    return { month, year, pending, recent };
+  }
+
+  /** Newest record of each service type for a vehicle. */
+  async latestRecordPerType(assetId: number): Promise<Array<ServiceRecordListRow>> {
+    const rows = (await this.serviceRecordQuery()
+      .where("r.asset_id", assetId)
+      .whereNull("r.deleted_at")
+      .orderBy("r.start_date", "desc")
+      .orderBy("r.id", "desc")) as ServiceRecordListRow[];
+    const seen = new Set<number>();
+    return rows.filter((r) => (seen.has(r.service_type_id) ? false : (seen.add(r.service_type_id), true)));
+  }
+
   async clearAssignmentOdometer(db: Db, assignmentId: number, column: "odometer_out" | "odometer_in"): Promise<void> {
     await db("asset_assignments").where({ id: assignmentId }).update({ [column]: null, updated_at: db.fn.now() });
   }

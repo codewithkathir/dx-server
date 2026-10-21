@@ -42,7 +42,7 @@ describe("Employees API (Admin)", () => {
   describe("GET /api/admin/employees", () => {
     it("returns paginated employees with filters", async () => {
       const { accessToken } = await loginAsAdmin(app);
-      const input = createEmployeeInput({ country: "UAE" });
+      const input = createEmployeeInput({ country: "AE" });
 
       await request(app)
         .post("/api/admin/employees")
@@ -52,7 +52,7 @@ describe("Employees API (Admin)", () => {
 
       const res = await request(app)
         .get("/api/admin/employees")
-        .query({ page: 1, limit: 10, country: "UAE", search: "John" })
+        .query({ page: 1, limit: 10, country: "AE", search: "John" })
         .set(authHeader(accessToken))
         .expect(200);
 

@@ -1,5 +1,6 @@
 import {
   assertPhonesMatchCountry,
+  countryName,
   countryCodeFor,
   isValidPhoneForCountry,
 } from "../../../src/shared/utils/phone.util";
@@ -33,6 +34,17 @@ describe("phone.util", () => {
     });
   });
 
+  describe("countryName", () => {
+    it("maps a stored ISO code to its name", () => {
+      expect(countryName("AE")).toBe("United Arab Emirates");
+      expect(countryName("in")).toBe("India");
+    });
+    it("passes unknown values through and blanks to null", () => {
+      expect(countryName("Narnia")).toBe("Narnia");
+      expect(countryName(" ")).toBeNull();
+    });
+  });
+
   describe("assertPhonesMatchCountry", () => {
     it("skips fields that are left out or cleared", () => {
       expect(() =>
@@ -44,7 +56,7 @@ describe("phone.util", () => {
     });
     it("reports each invalid field", () => {
       expect(() =>
-        assertPhonesMatchCountry("United Arab Emirates", {
+        assertPhonesMatchCountry("AE", {
           phoneNo: { label: "Phone number", value: "12345" },
         })
       ).toThrow("Phone number isn't a valid United Arab Emirates number");

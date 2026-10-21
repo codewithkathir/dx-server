@@ -130,12 +130,12 @@ export async function seed(knex: Knex): Promise<void> {
   await knex.transaction(async (trx) => {
     const supplierIds: number[] = [];
     for (const s of SUPPLIERS) {
-      const [id] = await trx("suppliers").insert({ ...s, country: "United Arab Emirates", status: "active", created_at: trx.fn.now(), updated_at: trx.fn.now() });
+      const [id] = await trx("suppliers").insert({ ...s, country: "AE", status: "active", created_at: trx.fn.now(), updated_at: trx.fn.now() });
       supplierIds.push(id as number);
     }
     const customerIds: number[] = [];
     for (const c of CUSTOMERS) {
-      const [id] = await trx("customers").insert({ ...c, country: "United Arab Emirates", status: "active", created_at: trx.fn.now(), updated_at: trx.fn.now() });
+      const [id] = await trx("customers").insert({ ...c, country: "AE", status: "active", created_at: trx.fn.now(), updated_at: trx.fn.now() });
       customerIds.push(id as number);
     }
 

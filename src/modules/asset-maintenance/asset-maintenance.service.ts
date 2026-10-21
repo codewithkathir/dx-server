@@ -21,6 +21,7 @@ import type {
   ServiceRecordRow,
   ServiceTypePublic,
   ServiceTypeRow,
+  EmployeeVehicleSummary,
   VehicleExpensePublic,
   VehicleExpenseRow,
   VehicleExpenseSummary,
@@ -495,6 +496,49 @@ class AssetMaintenanceService {
   /** On reject, delete or vehicle change: drop what the claim created. */
   async unlinkExpense(trx: Knex.Transaction, expenseId: number): Promise<void> {
     await assetMaintenanceRepository.deleteExpenseLinks(trx, expenseId);
+  }
+
+  /** Employee claim form: only for a vehicle the employee currently has. */
+  async employeeVehicleSummary(employeeId: number, assetId: number): Promise<EmployeeVehicleSummary> {
+    const asset = await assetRepository.findById(assetId);
+    const open = asset ? await assetRepository.findOpenAssignment(assetId) : undefined;
+    if (!asset || asset.category !== "vehicle" || open?.employee_id !== employeeId) throw notFound("Vehicle not found");
+    const today = todayIso();
+    const [spend, due, odometer] = await Promise.all([
+      assetMaintenanceRepository.employeeVehicleSpend(assetId, employeeId, `${today.slice(0, 7)}-01`, `${today.slice(0, 4)}-01-01`),
+      assetMaintenanceRepository.latestRecordPerType(assetId),
+      this.latestOdometer(assetId),
+    ]);
+    const totals = (r: { count: number | string; amount: number | string } | undefined) => ({
+      count: Number(r?.count ?? 0),
+      amount: Number(r?.amount ?? 0),
+    });
+    return {
+      assetId,
+      assetNo: asset.asset_no,
+      name: asset.name,
+      odometer,
+      thisMonth: totals(spend.month),
+      thisYear: totals(spend.year),
+      pending: totals(spend.pending),
+      recentClaims: spend.recent.map((r) => ({
+        id: r.id,
+        date: dateOnly(r.date) as string,
+        amount: Number(r.amount),
+        categoryName: r.category_name,
+        subCategoryName: r.sub_category_name,
+        stage: stageOf(r),
+      })),
+      due: due
+        .filter((r) => r.end_date || r.next_due_km !== null)
+        .map((r) => ({
+          serviceTypeName: r.service_type_name,
+          startDate: dateOnly(r.start_date) as string,
+          endDate: dateOnly(r.end_date),
+          nextDueKm: r.next_due_km,
+        }))
+        .sort((a, b) => (a.endDate ?? "9999").localeCompare(b.endDate ?? "9999")),
+    };
   }
 
   async listVehicleExpenses(assetId: number, query: VehicleExpenseListQueryParams) {
