@@ -254,14 +254,6 @@ class AssetService {
     return this.getById(id);
   }
 
-  async remove(id: number, deletedBy?: number): Promise<void> {
-    const current = await assetRepository.findListRowById(id);
-    if (!current) throw notFound("Asset not found");
-    if (current.status === "assigned") throw conflict("This asset is assigned. Record its return before deleting it.");
-    await assetRepository.softDeleteAsset(id, deletedBy);
-    logger.info({ assetId: id, deletedBy }, "Asset deleted");
-  }
-
   async assign(id: number, input: AssignAssetBody, assignedBy?: number): Promise<AssetDetail> {
     if (isFutureDate(input.assignedDate)) throw badRequest("The assigned date can't be in the future");
     const employee = await employeeRepository.findById(input.employeeId);

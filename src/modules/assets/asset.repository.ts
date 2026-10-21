@@ -110,12 +110,6 @@ class AssetRepository extends BaseRepository<AssetRow> {
     await db("assets").where({ id }).update({ ...row, updated_at: db.fn.now() });
   }
 
-  async softDeleteAsset(id: number, deletedBy?: number): Promise<void> {
-    await this.db("assets")
-      .where({ id })
-      .update({ deleted_at: this.db.fn.now(), updated_by: deletedBy ?? null });
-  }
-
   async findOpenAssignment(assetId: number, db: Db = this.db): Promise<AssignmentRow | undefined> {
     return db("asset_assignments").where({ asset_id: assetId }).whereNull("returned_date").first();
   }

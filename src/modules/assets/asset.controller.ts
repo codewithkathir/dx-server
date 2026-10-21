@@ -49,12 +49,6 @@ class AssetController {
     successResponse(res, asset, "Asset updated successfully");
   });
 
-  remove = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.validated!.params as IdParam;
-    await assetService.remove(id, req.user?.id);
-    successResponse(res, null, "Asset deleted successfully");
-  });
-
   assign = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.validated!.params as IdParam;
     const asset = await assetService.assign(id, req.validated!.body as AssignAssetBody, req.user?.id);

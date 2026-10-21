@@ -46,7 +46,8 @@ describe("Assets API", () => {
       .set(authHeader(adminToken))
       .send({ employeeId, assignedDate: today() })
       .expect(409);
-    await request(app).delete(`/api/v1/admin/assets/${assetId}`).set(authHeader(adminToken)).expect(409);
+    // Assets are never deleted (retire or mark them lost instead).
+    await request(app).delete(`/api/v1/admin/assets/${assetId}`).set(authHeader(adminToken)).expect(404);
 
     const mine = await request(app).get("/api/v1/employee/assets").set(authHeader(employeeToken)).expect(200);
     expect(mine.body.data.current).toHaveLength(1);

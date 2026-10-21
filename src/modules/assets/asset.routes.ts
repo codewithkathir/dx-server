@@ -31,7 +31,6 @@ assetRoutes.put(
   validate(updateAssetSchema, "body"),
   assetController.update
 );
-assetRoutes.delete("/:id", requirePermission(Permissions.ASSET_DELETE), validate(idParamSchema, "params"), assetController.remove);
 assetRoutes.post(
   "/:id/assign",
   requirePermission(Permissions.ASSET_ASSIGN),
