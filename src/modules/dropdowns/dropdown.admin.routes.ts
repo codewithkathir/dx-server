@@ -52,6 +52,13 @@ dropdownAdminRoutes.get(
   dropdownController.listVehicles
 );
 
+/** Active products with their price, for invoice lines. */
+dropdownAdminRoutes.get(
+  "/products",
+  requirePermission(Permissions.PRODUCT_READ),
+  dropdownController.listProducts
+);
+
 /** Any signed-in admin: the country field is on employee, supplier and customer forms. */
 dropdownAdminRoutes.get("/countries", dropdownController.listCountries);
 

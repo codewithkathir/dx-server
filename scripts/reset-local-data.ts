@@ -36,7 +36,32 @@ import {
 } from "../src/shared/utils/money.util";
 
 const N = 20;
-const KEEP_TABLES = new Set(["knex_migrations", "knex_migrations_lock"]);
+/** Countries are reference data (seeds/00_countries.ts), kept so stored country codes stay valid. */
+const KEEP_TABLES = new Set(["knex_migrations", "knex_migrations_lock", "countries"]);
+
+/** Price list for invoice lines: [code, name, unit, unit price]. */
+const PRODUCTS: Array<[string, string, string, string]> = [
+  ["SRV-001", "Consulting (per hour)", "hour", "350.00"],
+  ["SRV-002", "Site survey", "service", "1200.00"],
+  ["SRV-003", "Installation labour", "day", "950.00"],
+  ["SRV-004", "Annual maintenance contract", "service", "4800.00"],
+  ["SRV-005", "Delivery charge", "trip", "75.00"],
+  ["HW-001", "Network switch 24-port", "pcs", "1450.00"],
+  ["HW-002", "Wi-Fi access point", "pcs", "620.00"],
+  ["HW-003", "CAT6 cable (305 m box)", "box", "540.00"],
+  ["HW-004", "Patch panel 24-port", "pcs", "260.00"],
+  ["HW-005", "UPS 1.5 kVA", "pcs", "1890.00"],
+  ["HW-006", "IP camera 4 MP", "pcs", "410.00"],
+  ["HW-007", "NVR 16-channel", "pcs", "2350.00"],
+  ["HW-008", "Rack cabinet 42U", "pcs", "3200.00"],
+  ["SW-001", "Antivirus licence (1 year)", "licence", "95.00"],
+  ["SW-002", "Office suite licence (1 year)", "licence", "420.00"],
+  ["CON-001", "Printer toner cartridge", "pcs", "310.00"],
+  ["CON-002", "A4 paper (5 reams)", "box", "85.00"],
+  ["CON-003", "Cable ties (pack of 100)", "pack", "18.50"],
+  ["CON-004", "Fibre patch cord 3 m", "pcs", "45.00"],
+  ["CON-005", "Wall plate 2-port", "pcs", "22.00"],
+];
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 
 const today = todayIso();
@@ -514,6 +539,17 @@ async function seedFinance(trx: Knex.Transaction) {
     }))
   );
 
+  await trx("products").insert(
+    PRODUCTS.map(([code, name, unit, unit_price], i) => ({
+      code,
+      name,
+      unit,
+      unit_price,
+      status: i === 19 ? "inactive" : "active",
+      ...stamp(trx),
+    }))
+  );
+
   const supplierIds = (await trx("suppliers").orderBy("id").pluck("id")) as number[];
   const customerIds = (await trx("customers").orderBy("id").pluck("id")) as number[];
   const methods = (await trx("payment_methods").where({ status: "active" }).orderBy("id").pluck("id")) as number[];
@@ -588,6 +624,16 @@ async function seedFinance(trx: Knex.Transaction) {
       po_reference: i % 3 === 0 ? `PO-${4400 + i}` : null,
       status: deriveSettlementStatus(initial, totals.total, received, "sent"),
       ...stamp(trx),
+    });
+    await trx("receivable_invoice_lines").insert({
+      invoice_id: invoiceId,
+      line_no: 1,
+      description: pick(INVOICE_LINES, i),
+      quantity: "1.000",
+      unit_price: filsToDecimalString(totals.subtotal),
+      amount: filsToDecimalString(totals.subtotal),
+      created_at: trx.fn.now(),
+      updated_at: trx.fn.now(),
     });
     for (const [n, amount] of amounts.entries()) {
       const date = addDaysIso(docDate, 15 + n * 20);

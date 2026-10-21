@@ -56,6 +56,9 @@ export const Permissions = {
   ASSET_SERVICE_MANAGE: "asset.service.manage",
   EMPLOYEE_ACCOUNT_READ: "employee_account.read",
   EMPLOYEE_ACCOUNT_MANAGE: "employee_account.manage",
+  PRODUCT_CREATE: "product.create",
+  PRODUCT_READ: "product.read",
+  PRODUCT_UPDATE: "product.update",
 } as const;
 
 /** Finance permissions added after the initial release (see the add-finance-permissions migration). */
@@ -99,6 +102,13 @@ export const EmployeeAccountPermissions = [
   Permissions.EMPLOYEE_ACCOUNT_MANAGE,
 ] as const;
 
+/** Products / price list for invoice lines. Products are never deleted, only made inactive. */
+export const ProductPermissions = [
+  Permissions.PRODUCT_CREATE,
+  Permissions.PRODUCT_READ,
+  Permissions.PRODUCT_UPDATE,
+] as const;
+
 export type PermissionName = (typeof Permissions)[keyof typeof Permissions];
 
 export const DefaultRolePermissions: Record<string, PermissionName[]> = {
@@ -137,6 +147,7 @@ export const DefaultRolePermissions: Record<string, PermissionName[]> = {
     ...AssetPermissions,
     ...AssetMaintenancePermissions,
     ...EmployeeAccountPermissions,
+    ...ProductPermissions,
   ],
   EDITOR: [Permissions.USER_READ],
   USER: [],

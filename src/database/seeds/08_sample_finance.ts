@@ -206,6 +206,16 @@ export async function seed(knex: Knex): Promise<void> {
         created_at: trx.fn.now(),
         updated_at: trx.fn.now(),
       });
+      await trx("receivable_invoice_lines").insert({
+        invoice_id: invoiceId,
+        line_no: 1,
+        description: INVOICE_LINES[i % INVOICE_LINES.length],
+        quantity: "1.000",
+        unit_price: filsToDecimalString(totals.subtotal),
+        amount: filsToDecimalString(totals.subtotal),
+        created_at: trx.fn.now(),
+        updated_at: trx.fn.now(),
+      });
       for (const [n, amount] of amounts.entries()) {
         const date = addDaysIso(plan.docDate, 20 + n * 20);
         await trx("receivable_receipts").insert({

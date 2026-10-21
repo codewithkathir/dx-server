@@ -49,6 +49,25 @@ export function calculateVat(subtotal: Fils, ratePercent: number): Fils {
   return Math.round((subtotal * ratePercent) / 100);
 }
 
+/** Parse a quantity with at most 3 decimals ("2.5", 2.5) into thousandths (2500). */
+export function toQuantityUnits(value: string | number): number {
+  const units = Math.round(Number(value) * 1000);
+  if (!Number.isFinite(units) || Math.abs(Number(value) * 1000 - units) > 1e-6) {
+    throw new Error(`Invalid quantity: ${value}`);
+  }
+  return units;
+}
+
+/** True when a number has at most 3 decimal places (quantities, e.g. 1.25 kg). */
+export function hasAtMostThreeDecimals(value: number): boolean {
+  return Number.isFinite(value) && Math.abs(value * 1000 - Math.round(value * 1000)) < 1e-6;
+}
+
+/** Line amount = quantity × unit price, rounded half-up to the nearest fils. */
+export function calculateLineAmount(quantity: string | number, unitPrice: Fils): Fils {
+  return Math.round((toQuantityUnits(quantity) * unitPrice) / 1000);
+}
+
 export interface DocumentTotals {
   subtotal: Fils;
   vat: Fils;

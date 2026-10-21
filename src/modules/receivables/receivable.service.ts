@@ -10,8 +10,10 @@ import {
   nextDocumentNumber,
 } from "../../shared/utils/document-number.util";
 import {
+  calculateLineAmount,
   calculateTotals,
   deriveSettlementStatus,
+  type Fils,
   filsToDecimalString,
   fromFils,
   isOverdue,
@@ -19,15 +21,19 @@ import {
   toFils,
   isFutureDate,
   todayIso,
+  toQuantityUnits,
 } from "../../shared/utils/money.util";
 import { buildPaginationMeta } from "../../shared/utils/pagination.util";
 import { customerService } from "../customers/customer.service";
 import { paymentMethodRepository } from "../payment-methods/payment-method.repository";
+import { productRepository } from "../products/product.repository";
 import { invoiceBrandingService } from "../invoice-branding/invoice-branding.service";
 import { renderInvoicePdf } from "./invoice-pdf";
 import { receivableRepository } from "./receivable.repository";
 import type {
   InvoiceDetail,
+  InvoiceLinePublic,
+  InvoiceLineRow,
   InvoiceListQuery,
   InvoiceListRow,
   InvoicePublic,
@@ -76,6 +82,20 @@ class ReceivableService {
     };
   }
 
+  private toPublicLine(row: InvoiceLineRow): InvoiceLinePublic {
+    return {
+      id: row.id,
+      lineNo: row.line_no,
+      productId: row.product_id,
+      productCode: row.product_code ?? null,
+      description: row.description,
+      unit: row.unit,
+      quantity: Number(row.quantity),
+      unitPrice: fromFils(toFils(row.unit_price)),
+      amount: fromFils(toFils(row.amount)),
+    };
+  }
+
   private toPublicReceipt(row: ReceiptRow): ReceiptPublic {
     return {
       id: row.id,
@@ -102,8 +122,15 @@ class ReceivableService {
   async getInvoice(id: number, trx?: Knex.Transaction): Promise<InvoiceDetail> {
     const row = await receivableRepository.findDetailById(id, trx);
     if (!row) throw notFound("Invoice not found");
-    const receipts = await receivableRepository.listReceipts(id, trx);
-    return { ...this.toPublic(row), receipts: receipts.map((r) => this.toPublicReceipt(r)) };
+    const [lines, receipts] = await Promise.all([
+      receivableRepository.listLines(id, trx),
+      receivableRepository.listReceipts(id, trx),
+    ]);
+    return {
+      ...this.toPublic(row),
+      lines: lines.map((l) => this.toPublicLine(l)),
+      receipts: receipts.map((r) => this.toPublicReceipt(r)),
+    };
   }
 
   async getSummary(): Promise<ReceivablesSummary> {
@@ -126,8 +153,43 @@ class ReceivableService {
     return { trn: customer.trn };
   }
 
-  private totalsColumns(subtotal: number, vatRate: number) {
-    const totals = calculateTotals(toFils(subtotal), vatRate);
+  /**
+   * Prices the lines from the product list: the description defaults to the product's name
+   * and its unit is copied, so the invoice keeps what was sold even if the product changes.
+   * Inactive products can't be added, except ones already on this invoice (`keepProductIds`).
+   */
+  private async priceLines(
+    lines: CreateInvoiceBody["lines"],
+    keepProductIds: ReadonlySet<number> = new Set()
+  ): Promise<{ rows: Array<Record<string, unknown>>; subtotal: Fils }> {
+    const products = new Map(
+      (await productRepository.findByIds([...new Set(lines.map((l) => l.productId))])).map((p) => [p.id, p])
+    );
+    let subtotal = 0;
+    const rows = lines.map((line, index) => {
+      const product = products.get(line.productId);
+      if (!product) throw badRequest(`Line ${index + 1}: product not found`);
+      if (product.status !== "active" && !keepProductIds.has(product.id)) {
+        throw badRequest(`Line ${index + 1}: ${product.name} is inactive`);
+      }
+      const unitPrice = toFils(line.unitPrice);
+      const amount = calculateLineAmount(line.quantity, unitPrice);
+      subtotal += amount;
+      return {
+        product_id: product.id,
+        description: line.description?.trim() || product.name,
+        unit: product.unit,
+        quantity: (toQuantityUnits(line.quantity) / 1000).toFixed(3),
+        unit_price: filsToDecimalString(unitPrice),
+        amount: filsToDecimalString(amount),
+      };
+    });
+    if (subtotal <= 0) throw badRequest("Invoice total must be more than zero");
+    return { rows, subtotal };
+  }
+
+  private totalsColumns(subtotal: Fils, vatRate: number) {
+    const totals = calculateTotals(subtotal, vatRate);
     return {
       subtotal_amount: filsToDecimalString(totals.subtotal),
       vat_rate: vatRate,
@@ -142,6 +204,7 @@ class ReceivableService {
    */
   async createInvoice(input: CreateInvoiceBody, createdBy?: number): Promise<InvoiceDetail> {
     const customer = await this.assertCustomerUsable(input.customerId);
+    const lines = await this.priceLines(input.lines);
 
     const id = await db.transaction(async (trx) => {
       const invoiceNo = await nextDocumentNumber(
@@ -149,21 +212,23 @@ class ReceivableService {
         DocumentSequences.RECEIVABLE_INVOICE,
         Number(input.invoiceDate.slice(0, 4))
       );
-      return receivableRepository.insertInvoice(trx, {
+      const invoiceId = await receivableRepository.insertInvoice(trx, {
         invoice_no: invoiceNo,
         customer_id: input.customerId,
         customer_trn: customer.trn,
         invoice_date: input.invoiceDate,
         due_date: input.dueDate,
-        ...this.totalsColumns(input.subtotalAmount, input.vatRate),
+        ...this.totalsColumns(lines.subtotal, input.vatRate),
         amount_received: 0,
-        description: input.description,
+        description: input.description ?? null,
         po_reference: input.poReference ?? null,
         notes: input.notes ?? null,
         status: input.status,
         created_by: createdBy ?? null,
         updated_by: createdBy ?? null,
       });
+      await receivableRepository.replaceLines(trx, invoiceId, lines.rows);
+      return invoiceId;
     });
 
     logger.info({ invoiceId: id, createdBy }, "Receivable invoice created");
@@ -192,11 +257,17 @@ class ReceivableService {
       data.customer_id = input.customerId;
       data.customer_trn = customer.trn;
     }
-    if (input.subtotalAmount !== undefined || input.vatRate !== undefined) {
+    let lines: Awaited<ReturnType<ReceivableService["priceLines"]>> | undefined;
+    if (input.lines) {
+      const current = await receivableRepository.listLines(id);
+      const keep = new Set(current.map((l) => l.product_id).filter((p): p is number => p !== null));
+      lines = await this.priceLines(input.lines, keep);
+    }
+    if (lines || input.vatRate !== undefined) {
       Object.assign(
         data,
         this.totalsColumns(
-          input.subtotalAmount ?? Number(invoice.subtotal_amount),
+          lines?.subtotal ?? toFils(invoice.subtotal_amount),
           input.vatRate ?? Number(invoice.vat_rate)
         )
       );
@@ -205,7 +276,10 @@ class ReceivableService {
     if (input.poReference !== undefined) data.po_reference = input.poReference;
     if (input.notes !== undefined) data.notes = input.notes;
 
-    await receivableRepository.updateInvoice(db, id, data);
+    await db.transaction(async (trx) => {
+      await receivableRepository.updateInvoice(trx, id, data);
+      if (lines) await receivableRepository.replaceLines(trx, id, lines.rows);
+    });
     return this.getInvoice(id);
   }
 
@@ -313,9 +387,13 @@ class ReceivableService {
   async getInvoicePdf(id: number): Promise<{ filename: string; document: PDFKit.PDFDocument }> {
     const row = await receivableRepository.findDetailById(id);
     if (!row) throw notFound("Invoice not found");
+    const [lines, branding] = await Promise.all([
+      receivableRepository.listLines(id),
+      invoiceBrandingService.getAssets(),
+    ]);
     return {
       filename: `${row.invoice_no}.pdf`,
-      document: renderInvoicePdf(row, config.company, await invoiceBrandingService.getAssets()),
+      document: renderInvoicePdf(row, lines, config.company, branding),
     };
   }
 }

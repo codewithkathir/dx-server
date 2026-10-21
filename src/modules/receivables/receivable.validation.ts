@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { InvoiceStatuses, VatRates } from "../../shared/constants/finance";
 import { idParamSchema } from "../../shared/validators/common.validation";
+import { hasAtMostThreeDecimals } from "../../shared/utils/money.util";
 import { moneySchema } from "../payables/payable.validation";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD");
@@ -8,6 +9,27 @@ const vatRateSchema = z.coerce
   .number()
   .refine((rate) => (VatRates as readonly number[]).includes(rate), "VAT rate must be 0 or 5");
 const optionalText = (max: number) => z.union([z.string().max(max).trim(), z.null()]).optional();
+
+export const MAX_INVOICE_LINES = 100;
+
+/** One product line. The description defaults to the product's name; the price to its list price. */
+const invoiceLineSchema = z
+  .object({
+    productId: z.coerce.number().int().positive(),
+    description: z.union([z.string().max(500).trim(), z.null()]).optional(),
+    quantity: z.coerce
+      .number()
+      .positive()
+      .max(9_999_999)
+      .refine(hasAtMostThreeDecimals, "Quantity can have at most 3 decimal places"),
+    unitPrice: moneySchema,
+  })
+  .strict();
+
+const linesSchema = z
+  .array(invoiceLineSchema)
+  .min(1, "Add at least one product")
+  .max(MAX_INVOICE_LINES, `An invoice can have up to ${MAX_INVOICE_LINES} lines`);
 
 const dueAfterInvoice = (data: { invoiceDate?: string; dueDate?: string }) =>
   !data.invoiceDate || !data.dueDate || data.dueDate >= data.invoiceDate;
@@ -21,9 +43,10 @@ export const createInvoiceSchema = z
     customerId: z.coerce.number().int().positive(),
     invoiceDate: dateSchema,
     dueDate: dateSchema,
-    subtotalAmount: moneySchema,
+    lines: linesSchema,
     vatRate: vatRateSchema,
-    description: z.string().min(1).max(2000).trim(),
+    /** Optional subject shown above the lines. */
+    description: optionalText(2000),
     poReference: optionalText(100),
     notes: optionalText(2000),
     /** Keep as a draft, or mark as sent to the customer straight away. */
@@ -37,9 +60,10 @@ export const updateInvoiceSchema = z
     customerId: z.coerce.number().int().positive().optional(),
     invoiceDate: dateSchema.optional(),
     dueDate: dateSchema.optional(),
-    subtotalAmount: moneySchema.optional(),
+    /** Replaces all lines when sent. */
+    lines: linesSchema.optional(),
     vatRate: vatRateSchema.optional(),
-    description: z.string().min(1).max(2000).trim().optional(),
+    description: optionalText(2000),
     poReference: optionalText(100),
     notes: optionalText(2000),
   })

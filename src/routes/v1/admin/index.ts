@@ -14,6 +14,7 @@ import assetRoutes from "../../../modules/assets/asset.routes";
 import { assetMaintenanceRoutes, assetServiceTypeRoutes } from "../../../modules/asset-maintenance/asset-maintenance.routes";
 import employeeAccountRoutes from "../../../modules/employee-accounts/employee-account.routes";
 import invoiceBrandingRoutes from "../../../modules/invoice-branding/invoice-branding.routes";
+import productRoutes from "../../../modules/products/product.routes";
 
 const adminV1Router = Router();
 
@@ -26,6 +27,7 @@ adminV1Router.use("/payment-methods", paymentMethodRoutes);
 adminV1Router.use("/suppliers", supplierRoutes);
 adminV1Router.use("/payables", payableRoutes);
 adminV1Router.use("/customers", customerRoutes);
+adminV1Router.use("/products", productRoutes);
 adminV1Router.use("/receivables", receivableRoutes);
 adminV1Router.use("/assets", assetRoutes);
 adminV1Router.use("/assets", assetMaintenanceRoutes);

@@ -3,6 +3,7 @@ import { BaseRepository } from "../../shared/repositories/base.repository";
 import { paginateQuery } from "../../shared/utils/query-builder";
 import { toFils, type Fils } from "../../shared/utils/money.util";
 import type {
+  InvoiceLineRow,
   InvoiceListQuery,
   InvoiceListRow,
   InvoiceRow,
@@ -103,6 +104,28 @@ class ReceivableRepository extends BaseRepository<InvoiceRow> {
       .where({ id })
       .whereNull("deleted_at")
       .update({ ...data, updated_at: this.db.fn.now() });
+  }
+
+  async listLines(invoiceId: number, db: Db = this.db): Promise<InvoiceLineRow[]> {
+    return db("receivable_invoice_lines as l")
+      .leftJoin("products as p", "p.id", "l.product_id")
+      .where("l.invoice_id", invoiceId)
+      .orderBy("l.line_no", "asc")
+      .select("l.*", "p.code as product_code") as Promise<InvoiceLineRow[]>;
+  }
+
+  /** Lines are replaced as a whole when a draft is edited. */
+  async replaceLines(trx: Knex.Transaction, invoiceId: number, lines: Array<Record<string, unknown>>): Promise<void> {
+    await trx("receivable_invoice_lines").where({ invoice_id: invoiceId }).del();
+    await trx("receivable_invoice_lines").insert(
+      lines.map((line, index) => ({
+        ...line,
+        invoice_id: invoiceId,
+        line_no: index + 1,
+        created_at: this.db.fn.now(),
+        updated_at: this.db.fn.now(),
+      }))
+    );
   }
 
   async listReceipts(invoiceId: number, db: Db = this.db): Promise<ReceiptRow[]> {

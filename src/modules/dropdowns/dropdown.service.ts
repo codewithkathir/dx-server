@@ -9,6 +9,8 @@ import type {
 import { dropdownRepository } from "./dropdown.repository";
 import { countryService } from "../countries/country.service";
 import type { CountryOption } from "../countries/country.types";
+import { productService } from "../products/product.service";
+import type { ProductOption } from "../products/product.types";
 
 class DropdownService {
   async listCategories(): Promise<CategoryDropdownOption[]> {
@@ -33,6 +35,10 @@ class DropdownService {
 
   async listPaymentMethods(): Promise<DropdownOption[]> {
     return dropdownRepository.findActivePaymentMethods();
+  }
+
+  async listProducts(): Promise<ProductOption[]> {
+    return productService.listActiveOptions();
   }
 
   async listCountries(): Promise<CountryOption[]> {

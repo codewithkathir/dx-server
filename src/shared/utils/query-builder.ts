@@ -18,6 +18,8 @@ export interface QueryBuilderConfig {
   searchableFields?: string[];
   sortableFields?: string[];
   defaultSort?: string;
+  /** false for tables that are never deleted and have no `deleted_at` (e.g. products). */
+  softDelete?: boolean;
 }
 
 /** `table` qualifies the column, which joined queries need (both sides have deleted_at). */
@@ -35,7 +37,7 @@ export function applyListQuery(
 ): Knex.QueryBuilder {
   // Qualified so joined queries don't hit "column is ambiguous".
   const table = config.alias ?? config.table;
-  let query = applySoftDelete(baseQuery, table);
+  let query = config.softDelete === false ? baseQuery : applySoftDelete(baseQuery, table);
 
   if (options.search && config.searchableFields?.length) {
     const term = `%${options.search}%`;

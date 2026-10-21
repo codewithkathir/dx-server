@@ -10,6 +10,9 @@ import {
   isOverdue,
   toFils,
   todayIso,
+  calculateLineAmount,
+  hasAtMostThreeDecimals,
+  toQuantityUnits,
 } from "../../../src/shared/utils/money.util";
 
 describe("money.util", () => {
@@ -66,6 +69,21 @@ describe("money.util", () => {
 
     it("totals subtotal + VAT", () => {
       expect(calculateTotals(toFils("1000"), 5)).toEqual({ subtotal: 100000, vat: 5000, total: 105000 });
+    });
+  });
+
+  describe("line amounts", () => {
+    it("multiplies quantity by unit price, rounding half-up to the fils", () => {
+      expect(calculateLineAmount(12, toFils("4.50"))).toBe(5400);
+      expect(calculateLineAmount("7.5", toFils("3.25"))).toBe(2438); // 24.375 → 24.38
+      expect(calculateLineAmount(0.125, toFils("10.00"))).toBe(125);
+    });
+
+    it("parses quantities into thousandths and rejects more than 3 decimals", () => {
+      expect(toQuantityUnits("2.5")).toBe(2500);
+      expect(hasAtMostThreeDecimals(1.125)).toBe(true);
+      expect(hasAtMostThreeDecimals(1.1255)).toBe(false);
+      expect(() => toQuantityUnits(1.1255)).toThrow("Invalid quantity");
     });
   });
 

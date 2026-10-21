@@ -36,6 +36,31 @@ export interface InvoiceListRow extends InvoiceRow {
   customer_email: string | null;
 }
 
+export interface InvoiceLineRow {
+  id: number;
+  invoice_id: number;
+  line_no: number;
+  product_id: number | null;
+  product_code?: string | null;
+  description: string;
+  unit: string | null;
+  quantity: string;
+  unit_price: string;
+  amount: string;
+}
+
+export interface InvoiceLinePublic {
+  id: number;
+  lineNo: number;
+  productId: number | null;
+  productCode: string | null;
+  description: string;
+  unit: string | null;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+}
+
 export interface ReceiptRow {
   id: number;
   invoice_id: number;
@@ -85,6 +110,7 @@ export interface ReceiptPublic {
 }
 
 export interface InvoiceDetail extends InvoicePublic {
+  lines: InvoiceLinePublic[];
   receipts: ReceiptPublic[];
 }
 
