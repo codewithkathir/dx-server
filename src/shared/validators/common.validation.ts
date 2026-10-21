@@ -1,4 +1,3 @@
-import { countries } from "countries-list";
 import { z } from "zod";
 
 export const idParamSchema = z.object({
@@ -20,12 +19,12 @@ export const paginationQuerySchema = z
 
 export const emailSchema = z.string().email().toLowerCase().trim();
 
-/** ISO 3166-1 alpha-2 code, as served by the country API ("ae" → "AE"). */
+/** ISO 3166-1 alpha-2 code ("ae" → "AE"). Whether it exists is checked against the `countries` table in the service. */
 export const countryCodeSchema = z
   .string()
   .trim()
   .toUpperCase()
-  .refine((code) => Object.hasOwn(countries, code), { message: "Must be a valid ISO country code, e.g. AE" });
+  .regex(/^[A-Z]{2}$/, "Select a valid country");
 
 export const passwordSchema = z.string().min(8).max(128);
 

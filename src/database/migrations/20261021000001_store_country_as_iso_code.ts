@@ -1,5 +1,5 @@
 import type { Knex } from "knex";
-import { countries, getCountryCode, type TCountryCode } from "countries-list";
+import { COUNTRIES } from "../data/countries.data";
 
 /**
  * Country details now come from our country API, keyed by ISO 3166-1 alpha-2 code,
@@ -16,10 +16,9 @@ const TABLES = [
 const ALIASES: Record<string, string> = { uae: "AE", "u.a.e": "AE", "u.a.e.": "AE", ksa: "SA", uk: "GB", usa: "US" };
 
 function toCode(value: string): string | undefined {
-  const name = value.trim();
-  if (ALIASES[name.toLowerCase()]) return ALIASES[name.toLowerCase()];
-  if (/^[A-Za-z]{2}$/.test(name) && countries[name.toUpperCase() as TCountryCode]) return name.toUpperCase();
-  return getCountryCode(name) || undefined;
+  const name = value.trim().toLowerCase();
+  if (ALIASES[name]) return ALIASES[name];
+  return COUNTRIES.find((c) => c.code.toLowerCase() === name || c.name.toLowerCase() === name)?.code;
 }
 
 export async function up(knex: Knex): Promise<void> {
@@ -56,7 +55,7 @@ export async function down(knex: Knex): Promise<void> {
     });
     const rows: { country: string }[] = await knex(table).distinct("country").whereNotNull("country");
     for (const { country } of rows) {
-      const name = countries[country as TCountryCode]?.name;
+      const name = COUNTRIES.find((c) => c.code === country)?.name;
       if (name) await knex(table).where({ country }).update({ country: name });
     }
   }

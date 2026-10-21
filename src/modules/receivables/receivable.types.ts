@@ -32,6 +32,7 @@ export interface InvoiceListRow extends InvoiceRow {
   customer_address: string | null;
   customer_city_state: string | null;
   customer_country: string | null;
+  customer_country_name: string | null;
   customer_email: string | null;
 }
 

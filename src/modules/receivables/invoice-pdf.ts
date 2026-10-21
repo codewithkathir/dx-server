@@ -1,6 +1,5 @@
 import PDFDocument from "pdfkit";
 import { fromFils, toFils } from "../../shared/utils/money.util";
-import { countryName } from "../../shared/utils/phone.util";
 import type { InvoiceBrandingAssets } from "../invoice-branding/invoice-branding.service";
 import type { InvoiceListRow } from "./receivable.types";
 
@@ -153,7 +152,7 @@ export function renderInvoicePdf(
   doc.font("Helvetica-Bold").fontSize(12).fillColor(INK).text(invoice.customer_name, M, y + 13, { width: billWidth });
   doc.font("Helvetica").fontSize(9).fillColor(MUTED);
   for (const line of lines(invoice.customer_address)) doc.text(line, { width: billWidth });
-  const place = [invoice.customer_city_state, countryName(invoice.customer_country)].filter(Boolean).join(", ");
+  const place = [invoice.customer_city_state, invoice.customer_country_name ?? invoice.customer_country].filter(Boolean).join(", ");
   if (place) doc.text(place, { width: billWidth });
   if (invoice.customer_email) doc.text(invoice.customer_email, { width: billWidth });
   if (invoice.customer_trn) doc.font("Helvetica-Bold").fillColor(INK).text(`TRN ${invoice.customer_trn}`, { width: billWidth });

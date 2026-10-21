@@ -33,5 +33,6 @@ dropdownEmployeeRoutes.get(
 
 dropdownEmployeeRoutes.get("/whom", dropdownController.listWhom);
 dropdownEmployeeRoutes.get("/my-vehicles", dropdownController.listMyVehicles);
+dropdownEmployeeRoutes.get("/countries", dropdownController.listCountries);
 
 export default dropdownEmployeeRoutes;

@@ -30,7 +30,7 @@ import type {
   EmployeeResetPasswordInput,
   EmployeeUpdateProfileInput,
 } from "./employee-auth.types";
-import { assertPhonesMatchCountry } from "../../shared/utils/phone.util";
+import { countryService } from "../countries/country.service";
 
 /** How long a password reset link stays valid. */
 const RESET_LINK_MINUTES = 60;
@@ -307,7 +307,7 @@ class EmployeeAuthService {
       throw new ApiError("Employee not found", ErrorCodes.NOT_FOUND, 404);
     }
 
-    assertPhonesMatchCountry(input.country ?? employee.country, {
+    await countryService.assertCountryAndPhones(input.country, employee.country, {
       phoneNo: { label: "Phone number", value: input.phoneNo },
       whatsappNo: { label: "WhatsApp number", value: input.whatsappNo },
     });

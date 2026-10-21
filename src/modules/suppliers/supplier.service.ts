@@ -15,7 +15,7 @@ import type {
   SupplierRow,
   UpdateSupplierInput,
 } from "./supplier.types";
-import { assertPhonesMatchCountry } from "../../shared/utils/phone.util";
+import { countryService } from "../countries/country.service";
 
 class SupplierService {
   toPublic(row: SupplierRow): SupplierPublic {
@@ -82,7 +82,7 @@ class SupplierService {
     createdBy?: number
   ): Promise<SupplierPublic> {
     await this.assertNameAvailable(input.companyName);
-    assertPhonesMatchCountry(input.country, {
+    await countryService.assertCountryAndPhones(input.country, null, {
       phone1: { label: "Phone number", value: input.phone1 },
       phone2: { label: "Second phone number", value: input.phone2 },
       whatsappNo: { label: "WhatsApp number", value: input.whatsappNo },
@@ -98,7 +98,7 @@ class SupplierService {
   ): Promise<SupplierPublic> {
     const existing = await this.assertSupplierExists(id);
     if (input.companyName) await this.assertNameAvailable(input.companyName, id);
-    assertPhonesMatchCountry(input.country === undefined ? existing.country : input.country, {
+    await countryService.assertCountryAndPhones(input.country, existing.country, {
       phone1: { label: "Phone number", value: input.phone1 },
       phone2: { label: "Second phone number", value: input.phone2 },
       whatsappNo: { label: "WhatsApp number", value: input.whatsappNo },

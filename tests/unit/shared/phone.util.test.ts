@@ -1,32 +1,17 @@
-import {
-  assertPhonesMatchCountry,
-  countryName,
-  countryCodeFor,
-  isValidPhoneForCountry,
-} from "../../../src/shared/utils/phone.util";
+import { assertPhonesMatchCountry, isValidPhoneForCountry } from "../../../src/shared/utils/phone.util";
+
+const UAE = { code: "AE", name: "United Arab Emirates" };
 
 describe("phone.util", () => {
-  describe("countryCodeFor", () => {
-    it("maps full names, short names and ISO codes", () => {
-      expect(countryCodeFor("United Arab Emirates")).toBe("AE");
-      expect(countryCodeFor("UAE")).toBe("AE");
-      expect(countryCodeFor("in")).toBe("IN");
-    });
-    it("returns undefined for blank or unknown countries", () => {
-      expect(countryCodeFor("")).toBeUndefined();
-      expect(countryCodeFor("Narnia")).toBeUndefined();
-    });
-  });
-
   describe("isValidPhoneForCountry", () => {
     it("accepts national and international numbers of the country", () => {
-      expect(isValidPhoneForCountry("050 123 4567", "United Arab Emirates")).toBe(true);
-      expect(isValidPhoneForCountry("+971 50 123 4567", "United Arab Emirates")).toBe(true);
-      expect(isValidPhoneForCountry("98765 43210", "India")).toBe(true);
+      expect(isValidPhoneForCountry("050 123 4567", "AE")).toBe(true);
+      expect(isValidPhoneForCountry("+971 50 123 4567", "ae")).toBe(true);
+      expect(isValidPhoneForCountry("98765 43210", "IN")).toBe(true);
     });
     it("rejects numbers from another country or too short", () => {
-      expect(isValidPhoneForCountry("+91 98765 43210", "United Arab Emirates")).toBe(false);
-      expect(isValidPhoneForCountry("12345", "United Arab Emirates")).toBe(false);
+      expect(isValidPhoneForCountry("+91 98765 43210", "AE")).toBe(false);
+      expect(isValidPhoneForCountry("12345", "AE")).toBe(false);
     });
     it("needs the country code when no country is known", () => {
       expect(isValidPhoneForCountry("+971501234567", null)).toBe(true);
@@ -34,32 +19,26 @@ describe("phone.util", () => {
     });
   });
 
-  describe("countryName", () => {
-    it("maps a stored ISO code to its name", () => {
-      expect(countryName("AE")).toBe("United Arab Emirates");
-      expect(countryName("in")).toBe("India");
-    });
-    it("passes unknown values through and blanks to null", () => {
-      expect(countryName("Narnia")).toBe("Narnia");
-      expect(countryName(" ")).toBeNull();
-    });
-  });
-
   describe("assertPhonesMatchCountry", () => {
     it("skips fields that are left out or cleared", () => {
       expect(() =>
-        assertPhonesMatchCountry("United Arab Emirates", {
+        assertPhonesMatchCountry(UAE, {
           phoneNo: { label: "Phone number", value: undefined },
           whatsappNo: { label: "WhatsApp number", value: null },
         })
       ).not.toThrow();
     });
-    it("reports each invalid field", () => {
+    it("reports each invalid field with the country's name", () => {
       expect(() =>
-        assertPhonesMatchCountry("AE", {
+        assertPhonesMatchCountry(UAE, {
           phoneNo: { label: "Phone number", value: "12345" },
         })
       ).toThrow("Phone number isn't a valid United Arab Emirates number");
+    });
+    it("asks for the dialling code when there is no country", () => {
+      expect(() =>
+        assertPhonesMatchCountry(null, { phoneNo: { label: "Phone number", value: "0501234567" } })
+      ).toThrow("Phone number must include the country code");
     });
   });
 });

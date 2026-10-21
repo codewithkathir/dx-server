@@ -52,4 +52,7 @@ dropdownAdminRoutes.get(
   dropdownController.listVehicles
 );
 
+/** Any signed-in admin: the country field is on employee, supplier and customer forms. */
+dropdownAdminRoutes.get("/countries", dropdownController.listCountries);
+
 export default dropdownAdminRoutes;

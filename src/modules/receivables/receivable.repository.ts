@@ -30,6 +30,7 @@ class ReceivableRepository extends BaseRepository<InvoiceRow> {
   private joinedQuery(db: Db = this.db): Knex.QueryBuilder {
     return db("receivable_invoices as i")
       .join("customers as c", "c.id", "i.customer_id")
+      .leftJoin("countries as co", "co.code", "c.country")
       .whereNull("i.deleted_at")
       .select(
         "i.*",
@@ -37,6 +38,7 @@ class ReceivableRepository extends BaseRepository<InvoiceRow> {
         "c.company_address as customer_address",
         "c.city_state as customer_city_state",
         "c.country as customer_country",
+        "co.name as customer_country_name",
         "c.email as customer_email"
       );
   }

@@ -20,7 +20,7 @@ import type {
   UpdateEmployeeInput,
 } from "./employee.types";
 import type { CreateEmployeeBody } from "./employee.validation";
-import { assertPhonesMatchCountry } from "../../shared/utils/phone.util";
+import { countryService } from "../countries/country.service";
 
 class EmployeeService {
   private formatDate(value: Date | string): string {
@@ -113,7 +113,7 @@ class EmployeeService {
       );
     }
 
-    assertPhonesMatchCountry(input.country, {
+    await countryService.assertCountryAndPhones(input.country, null, {
       phoneNo: { label: "Phone number", value: input.phoneNo },
       whatsappNo: { label: "WhatsApp number", value: input.whatsappNo },
     });
@@ -154,7 +154,7 @@ class EmployeeService {
       }
     }
 
-    assertPhonesMatchCountry(input.country ?? existing.country, {
+    await countryService.assertCountryAndPhones(input.country, existing.country, {
       phoneNo: { label: "Phone number", value: input.phoneNo },
       whatsappNo: { label: "WhatsApp number", value: input.whatsappNo },
     });
@@ -249,7 +249,7 @@ class EmployeeService {
             continue;
           }
 
-          assertPhonesMatchCountry(input.country, {
+          await countryService.assertCountryAndPhones(input.country, null, {
             phoneNo: { label: "Phone number", value: input.phoneNo },
             whatsappNo: { label: "WhatsApp number", value: input.whatsappNo },
           });
