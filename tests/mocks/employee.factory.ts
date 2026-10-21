@@ -13,7 +13,7 @@ export function createEmployeeInput(
     dob: "1990-01-15",
     homeAddress: "123 Main Street",
     cityState: "Dubai",
-    country: "United Arab Emirates",
+    country: "AE",
     phoneNo: "+971501234567",
     whatsappNo: "+971501234567",
     emiratesIdNo: `784-${suffix}`,

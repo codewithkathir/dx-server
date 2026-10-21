@@ -11,9 +11,14 @@ describe("profile.validation", () => {
         whatsappNo: "+971501234567",
         homeAddress: "456 Al Wasl Road",
         cityState: "Dubai",
-        country: "UAE",
+        country: "AE",
       });
       expect(result.success).toBe(true);
+    });
+
+    it("normalises the country to an ISO code and rejects names", () => {
+      expect(employeeUpdateProfileSchema.parse({ country: " ae " }).country).toBe("AE");
+      expect(employeeUpdateProfileSchema.safeParse({ country: "United Arab Emirates" }).success).toBe(false);
     });
 
     it("accepts a partial update", () => {

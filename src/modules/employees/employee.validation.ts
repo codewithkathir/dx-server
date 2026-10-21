@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  countryCodeSchema,
   emailSchema,
   idParamSchema,
   passwordSchema,
@@ -22,7 +23,7 @@ export const employeeCoreFields = {
   dob: dateStringSchema,
   homeAddress: z.string().min(1).max(500).trim(),
   cityState: z.string().min(1).max(150).trim(),
-  country: z.string().min(1).max(100).trim(),
+  country: countryCodeSchema,
   phoneNo: phoneSchema,
   whatsappNo: phoneSchema.optional(),
   emiratesIdNo: idDocSchema,
@@ -81,7 +82,7 @@ export const employeeListQuerySchema = z
     sortBy: z.string().optional(),
     order: z.enum(["asc", "desc"]).default("desc"),
     status: z.enum(EmployeeStatuses).optional(),
-    country: z.string().max(100).optional(),
+    country: countryCodeSchema.optional(),
     cityState: z.string().max(150).optional(),
     companyName: z.string().max(200).optional(),
     createdAtFrom: z.string().optional(),
