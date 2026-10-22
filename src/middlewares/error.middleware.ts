@@ -57,6 +57,18 @@ export function errorHandler(
     return;
   }
 
+  // A unique key the service didn't check for (or a race between two requests) is a conflict, not a crash.
+  if ((err as { code?: string }).code === "ER_DUP_ENTRY") {
+    logger.warn({ err, path: req.path, method: req.method, userId: req.user?.id }, "Duplicate entry");
+    res.status(409).json({
+      success: false,
+      message: "A record with the same unique value already exists",
+      errorCode: ErrorCodes.CONFLICT,
+      errors: [],
+    });
+    return;
+  }
+
   const isDbError =
     "code" in err &&
     typeof (err as { code?: string }).code === "string" &&
