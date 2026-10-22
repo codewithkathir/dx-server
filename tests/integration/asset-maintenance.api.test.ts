@@ -112,12 +112,12 @@ describe("Asset maintenance API", () => {
       .post(`/api/v1/admin/assets/${vehicleId}/service-records`)
       .set(auth)
       .send({ serviceTypeId: typeId("SERVICE"), startDate: daysAgo(1), endDate: daysAgo(5) })
-      .expect(422);
+      .expect(400);
     await request(app)
       .post(`/api/v1/admin/assets/${vehicleId}/service-records`)
       .set(auth)
       .send({ serviceTypeId: typeId("SERVICE"), startDate: daysAgo(1), driver: "x" })
-      .expect(422);
+      .expect(400);
     await request(app)
       .post(`/api/v1/admin/assets/${vehicleId}/service-records`)
       .set(auth)
@@ -161,7 +161,7 @@ describe("Asset maintenance API", () => {
       .post(`/api/v1/employee/assets/${assignmentId}/odometer-readings`)
       .set(authHeader(employeeToken))
       .send({ readingKm: 10400, allowDecrease: true })
-      .expect(422);
+      .expect(400);
     const reported = await request(app)
       .post(`/api/v1/employee/assets/${assignmentId}/odometer-readings`)
       .set(authHeader(employeeToken))
@@ -209,7 +209,7 @@ describe("Asset maintenance API", () => {
     expect(created.body.data).toMatchObject({ code: "SALIK_TAG", intervalKm: null, status: "active" });
 
     await request(app).post("/api/v1/admin/asset-service-types").set(auth).send({ code: "SALIK_TAG", name: "Again" }).expect(409);
-    await request(app).post("/api/v1/admin/asset-service-types").set(auth).send({ code: "X", name: "X", extra: 1 }).expect(422);
+    await request(app).post("/api/v1/admin/asset-service-types").set(auth).send({ code: "X", name: "X", extra: 1 }).expect(400);
 
     await request(app)
       .post(`/api/v1/admin/assets/${vehicleId}/service-records`)

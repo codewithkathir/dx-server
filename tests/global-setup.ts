@@ -7,6 +7,8 @@ export default async function globalSetup(): Promise<void> {
     path: path.resolve(__dirname, "../.env.test"),
     override: true,
   });
+  // Optional, git-ignored per-machine overrides (e.g. a different local MySQL password).
+  dotenv.config({ path: path.resolve(__dirname, "../.env.test.local"), override: true });
 
   const dbName = process.env.DB_NAME ?? "dx_app_test";
 

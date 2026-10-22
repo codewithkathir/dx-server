@@ -7,6 +7,12 @@ import {
 
 export async function seed(knex: Knex): Promise<void> {
   await knex("role_permissions").del();
+  // Children of expenses / employees / invoices first, or their foreign keys block the deletes below.
+  await knex("employee_account_entries").del();
+  await knex("asset_odometer_readings").del();
+  await knex("asset_service_records").del();
+  await knex("asset_assignments").del();
+  await knex("receivable_invoice_lines").del();
   await knex("receivable_receipts").del();
   await knex("receivable_invoices").del();
   await knex("payable_payments").del();

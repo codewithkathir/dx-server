@@ -39,7 +39,7 @@ describe("Employee accounts (advances)", () => {
     const { admin, employee, employeeId, paymentMethodId, claim } = await setup();
     const base = `/api/v1/admin/employee-accounts/${employeeId}`;
 
-    await request(app).get("/api/v1/admin/employee-accounts").set(employee).expect(401);
+    await request(app).get("/api/v1/admin/employee-accounts").set(employee).expect(403);
     const given = await request(app)
       .post(`${base}/advances`)
       .set(admin)
@@ -73,7 +73,7 @@ describe("Employee accounts (advances)", () => {
       .post(`/api/v1/admin/employee-expenses/${another}/approve`)
       .set(admin)
       .send({ reimburseInFull: true })
-      .expect(422);
+      .expect(400);
     await request(app).post(`${base}/returns`).set(admin).send({ amount: 300, entryDate: today(), paymentMethodId }).expect(400);
     await request(app).post(`${base}/returns`).set(admin).send({ amount: 150, entryDate: today(), paymentMethodId }).expect(201);
     // 50 left: the 80 claim splits 50 from the advance + a 30 bill.
