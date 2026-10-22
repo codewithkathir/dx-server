@@ -21,6 +21,19 @@ import type {
 } from "./employee.types";
 import type { CreateEmployeeBody } from "./employee.validation";
 import { countryService } from "../countries/country.service";
+import { config } from "../../config";
+import { employeeWelcomeEmail, mailService } from "../../shared/mail";
+import type { MailMessage } from "../../shared/mail";
+
+
+/** Sign-in details for a new employee; the password is the one the administrator just set. */
+function welcomeEmail(employee: EmployeeRow, password: string): MailMessage {
+  return employeeWelcomeEmail(
+    { email: employee.email, name: employee.emp_name },
+    password,
+    `${config.app.frontendUrl}/login`
+  );
+}
 
 class EmployeeService {
   private formatDate(value: Date | string): string {
@@ -134,6 +147,7 @@ class EmployeeService {
       );
     }
 
+    mailService.sendInBackground(welcomeEmail(employee, input.password));
     return this.toPublicEmployee(employee);
   }
 
@@ -230,6 +244,7 @@ class EmployeeService {
   ): Promise<BulkCreateResult> {
     const created: EmployeePublic[] = [];
     const failed: BulkCreateResult["failed"] = [];
+    const welcomeEmails: MailMessage[] = [];
 
     await db.transaction(async (trx) => {
       for (let index = 0; index < employees.length; index++) {
@@ -268,6 +283,7 @@ class EmployeeService {
           );
           if (employee) {
             created.push(this.toPublicEmployee(employee));
+            welcomeEmails.push(welcomeEmail(employee, input.password));
           }
         } catch (error) {
           failed.push({
@@ -280,6 +296,8 @@ class EmployeeService {
       }
     });
 
+    // Only after the transaction commits, so a rolled-back import never emails anyone.
+    welcomeEmails.forEach((message) => mailService.sendInBackground(message));
     return { created, failed };
   }
 

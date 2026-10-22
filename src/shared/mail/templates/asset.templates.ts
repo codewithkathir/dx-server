@@ -27,6 +27,7 @@ export function assetAssignedEmail(
     subject: `Asset assigned to you: ${asset.name}`,
     ...renderEmail({
       preheader: "Please confirm in the app that you received it.",
+      badge: { label: "Action needed", tone: "warning" },
       heading: "An asset has been assigned to you",
       paragraphs: [
         `Hi ${to.name ?? "there"},`,
@@ -59,6 +60,7 @@ export function assetReturnedEmail(
     subject: `Asset return recorded: ${asset.name}`,
     ...renderEmail({
       preheader: `Returned on ${formatDate(returned.returnedDate)}.`,
+      badge: { label: "Returned", tone: "success" },
       heading: "Asset return recorded",
       paragraphs: [`Hi ${to.name ?? "there"},`, "Your administrator recorded the return of this asset. It is no longer assigned to you."],
       details: [

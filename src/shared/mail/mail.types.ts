@@ -11,4 +11,6 @@ export interface MailMessage {
   text: string;
   /** Short label for logs, e.g. "password-reset". Never put tokens or links here. */
   tag: string;
+  /** Holds a password or similar secret: never write the body to the log. */
+  sensitive?: boolean;
 }

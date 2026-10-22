@@ -50,7 +50,7 @@ class MailService {
 
     if (!config.mail.enabled) {
       logger.info({ tag: message.tag, to, subject: message.subject }, "Email not sent (mail disabled: no SMTP_HOST or SENDGRID_API_KEY)");
-      if (config.isDevelopment) logger.debug({ tag: message.tag, text: message.text }, "Email body (dev)");
+      if (config.isDevelopment && !message.sensitive) logger.debug({ tag: message.tag, text: message.text }, "Email body (dev)");
       return;
     }
 

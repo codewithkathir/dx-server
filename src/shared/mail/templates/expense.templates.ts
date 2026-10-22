@@ -31,6 +31,7 @@ export function claimApprovedEmail(
     subject: `Approved: ${formatAed(claim.amount)} for ${claimTitle(claim)}`,
     ...renderEmail({
       preheader: `You'll be paid back by ${formatDate(dueDate)}.`,
+      badge: { label: "Approved", tone: "success" },
       heading: "Your expense claim was approved",
       paragraphs: [`Hi ${to.name ?? "there"},`, `Good news — your claim was approved. Finance will pay you back by ${formatDate(dueDate)}.`],
       details: claimDetails(claim),
@@ -47,6 +48,7 @@ export function claimRejectedEmail(to: MailRecipient, claim: ClaimSummary, claim
     subject: `Not approved: ${claimTitle(claim)}`,
     ...renderEmail({
       preheader: "See the reason from your administrator.",
+      badge: { label: "Not approved", tone: "danger" },
       heading: "Your expense claim wasn't approved",
       paragraphs: [`Hi ${to.name ?? "there"},`, "Your administrator reviewed this claim and didn't approve it."],
       details: claimDetails(claim),
@@ -78,6 +80,7 @@ export function claimPaidEmail(
       : `Part payment: ${formatAed(payment.amount)} for ${claimTitle(claim)}`,
     ...renderEmail({
       preheader: payment.fullyPaid ? "Your claim has been paid back in full." : "Part of your claim has been paid back.",
+      badge: payment.fullyPaid ? { label: "Paid", tone: "success" } : { label: "Part paid", tone: "info" },
       heading: payment.fullyPaid ? "You've been paid back" : "Part of your claim was paid",
       paragraphs: [
         `Hi ${to.name ?? "there"},`,
