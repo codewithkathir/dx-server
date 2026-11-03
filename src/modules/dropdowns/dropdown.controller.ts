@@ -40,6 +40,10 @@ class DropdownController {
     successResponse(res, await dropdownService.listVehicles(req.user!.id), "Vehicles fetched successfully");
   });
 
+  listVehicleWork = asyncHandler(async (_req: Request, res: Response) => {
+    successResponse(res, await dropdownService.listVehicleWork(), "Vehicle work fetched successfully");
+  });
+
   listProducts = asyncHandler(async (_req: Request, res: Response) => {
     successResponse(res, await dropdownService.listProducts(), "Products fetched successfully");
   });

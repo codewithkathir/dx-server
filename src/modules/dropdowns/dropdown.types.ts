@@ -16,6 +16,17 @@ export interface VehicleDropdownOption {
   odometerKm: number | null;
 }
 
+/** A vehicle job (oil change…) an employee can claim, and the category the claim goes under. */
+export interface VehicleWorkOption {
+  serviceTypeId: number;
+  serviceTypeName: string;
+  categoryId: number;
+  subCategoryId: number;
+  subSubCategoryId: number | null;
+  /** "Vehicle › Oil Change" */
+  categoryPath: string;
+}
+
 export interface WhomDropdownOption {
   id: number;
   empName: string;

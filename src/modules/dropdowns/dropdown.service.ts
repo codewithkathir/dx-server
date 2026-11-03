@@ -2,6 +2,7 @@ import type {
   CategoryDropdownOption,
   DropdownOption,
   VehicleDropdownOption,
+  VehicleWorkOption,
   SubCategoryDropdownQuery,
   SubSubCategoryDropdownQuery,
   WhomDropdownOption,
@@ -19,6 +20,16 @@ class DropdownService {
 
   async listVehicles(employeeId?: number): Promise<VehicleDropdownOption[]> {
     return dropdownRepository.findVehicles(employeeId);
+  }
+
+  /** One entry per service type: the first category mapped to it (sub categories before sub-sub). */
+  async listVehicleWork(): Promise<VehicleWorkOption[]> {
+    const seen = new Set<number>();
+    return (await dropdownRepository.findVehicleWork()).filter((w) => {
+      if (seen.has(w.serviceTypeId)) return false;
+      seen.add(w.serviceTypeId);
+      return true;
+    });
   }
 
   async listSubCategories(

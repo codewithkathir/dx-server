@@ -5,6 +5,7 @@ import type {
   CategoryDropdownOption,
   DropdownOption,
   VehicleDropdownOption,
+  VehicleWorkOption,
   SubCategoryDropdownQuery,
   SubSubCategoryDropdownQuery,
   WhomDropdownOption,
@@ -42,6 +43,67 @@ class DropdownRepository {
     }
     const rows = (await query) as Array<{ id: number; asset_no: string; name: string; odometer_km: number | null }>;
     return rows.map((r) => ({ id: r.id, assetNo: r.asset_no, name: r.name, odometerKm: r.odometer_km ?? null }));
+  }
+
+  /**
+   * Active sub / sub-sub categories of vehicle categories that are mapped to an
+   * active service type, in service-type order. A sub-sub mapping is listed as
+   * well as its parent's, so the service layer can pick one per type.
+   */
+  async findVehicleWork(): Promise<VehicleWorkOption[]> {
+    const subs = this.db("sub_categories as s")
+      .join("categories as c", "c.id", "s.category_id")
+      .join("asset_service_types as t", "t.id", "s.service_type_id")
+      .whereNull("s.deleted_at")
+      .whereNull("c.deleted_at")
+      .whereNull("t.deleted_at")
+      .where({ "s.status": "active", "c.status": "active", "c.is_vehicle_expense": true, "t.status": "active" })
+      .select(
+        "t.id as service_type_id",
+        "t.name as service_type_name",
+        "t.sort_order",
+        "c.id as category_id",
+        "s.id as sub_category_id",
+        this.db.raw("NULL AS sub_sub_category_id"),
+        this.db.raw("CONCAT(c.name, ' › ', s.name) AS category_path")
+      );
+    const subSubs = this.db("sub_sub_categories as ss")
+      .join("sub_categories as s", "s.id", "ss.sub_category_id")
+      .join("categories as c", "c.id", "s.category_id")
+      .join("asset_service_types as t", "t.id", "ss.service_type_id")
+      .whereNull("ss.deleted_at")
+      .whereNull("s.deleted_at")
+      .whereNull("c.deleted_at")
+      .whereNull("t.deleted_at")
+      .where({ "ss.status": "active", "s.status": "active", "c.status": "active", "c.is_vehicle_expense": true, "t.status": "active" })
+      .select(
+        "t.id as service_type_id",
+        "t.name as service_type_name",
+        "t.sort_order",
+        "c.id as category_id",
+        "s.id as sub_category_id",
+        "ss.id as sub_sub_category_id",
+        this.db.raw("CONCAT(c.name, ' › ', s.name, ' › ', ss.name) AS category_path")
+      );
+    const rows = (await this.db
+      .select("*")
+      .from(subs.unionAll(subSubs, true).as("w"))
+      .orderBy([{ column: "sort_order" }, { column: "service_type_name" }, { column: "sub_sub_category_id" }])) as Array<{
+      service_type_id: number;
+      service_type_name: string;
+      category_id: number;
+      sub_category_id: number;
+      sub_sub_category_id: number | null;
+      category_path: string;
+    }>;
+    return rows.map((r) => ({
+      serviceTypeId: r.service_type_id,
+      serviceTypeName: r.service_type_name,
+      categoryId: r.category_id,
+      subCategoryId: r.sub_category_id,
+      subSubCategoryId: r.sub_sub_category_id ?? null,
+      categoryPath: r.category_path,
+    }));
   }
 
   async findActiveSubCategories(
