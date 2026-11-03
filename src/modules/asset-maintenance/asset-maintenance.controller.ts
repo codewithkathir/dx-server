@@ -106,6 +106,20 @@ class AssetMaintenanceController {
     successResponse(res, await assetMaintenanceService.employeeVehicleSummary(req.user!.id, id), "Vehicle summary fetched successfully");
   });
 
+  listMyServiceRecords = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.validated!.params as IdParam;
+    const query = req.validated!.query as ServiceRecordListQueryParams;
+    const result = await assetMaintenanceService.listMyServiceRecords(req.user!.id, id, query);
+    paginationResponse(res, result.data, result.meta, "Service records fetched successfully");
+  });
+
+  listMyOdometerReadings = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.validated!.params as IdParam;
+    const query = req.validated!.query as OdometerReadingListQueryParams;
+    const result = await assetMaintenanceService.listMyOdometerReadings(req.user!.id, id, query);
+    paginationResponse(res, result.data, result.meta, "Odometer readings fetched successfully");
+  });
+
   // ── Service types ──────────────────────────────────────────────────────────
 
   listServiceTypes = asyncHandler(async (req: Request, res: Response) => {

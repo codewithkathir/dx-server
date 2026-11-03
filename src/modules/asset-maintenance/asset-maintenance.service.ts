@@ -498,11 +498,31 @@ class AssetMaintenanceService {
     await assetMaintenanceRepository.deleteExpenseLinks(trx, expenseId);
   }
 
-  /** Employee claim form: only for a vehicle the employee currently has. */
-  async employeeVehicleSummary(employeeId: number, assetId: number): Promise<EmployeeVehicleSummary> {
+  /** A vehicle the employee currently has; anything else looks like it doesn't exist. */
+  private async requireMyVehicle(employeeId: number, assetId: number): Promise<AssetRow> {
     const asset = await assetRepository.findById(assetId);
     const open = asset ? await assetRepository.findOpenAssignment(assetId) : undefined;
     if (!asset || asset.category !== "vehicle" || open?.employee_id !== employeeId) throw notFound("Vehicle not found");
+    return asset;
+  }
+
+  /** Employee app: service history of the vehicle they currently have. */
+  async listMyServiceRecords(employeeId: number, assetId: number, query: ServiceRecordListQueryParams) {
+    await this.requireMyVehicle(employeeId, assetId);
+    const { data, total } = await assetMaintenanceRepository.findServiceRecords(assetId, query);
+    return { data: data.map(toServiceRecord), meta: buildPaginationMeta(query.page, query.limit, total) };
+  }
+
+  /** Employee app: odometer history of the vehicle they currently have. */
+  async listMyOdometerReadings(employeeId: number, assetId: number, query: OdometerReadingListQueryParams) {
+    await this.requireMyVehicle(employeeId, assetId);
+    const { data, total } = await assetMaintenanceRepository.findOdometerReadings(assetId, query);
+    return { data: data.map(toOdometerReading), meta: buildPaginationMeta(query.page, query.limit, total) };
+  }
+
+  /** Employee claim form: only for a vehicle the employee currently has. */
+  async employeeVehicleSummary(employeeId: number, assetId: number): Promise<EmployeeVehicleSummary> {
+    const asset = await this.requireMyVehicle(employeeId, assetId);
     const today = todayIso();
     const [spend, due, odometer] = await Promise.all([
       assetMaintenanceRepository.employeeVehicleSpend(assetId, employeeId, `${today.slice(0, 7)}-01`, `${today.slice(0, 4)}-01-01`),
